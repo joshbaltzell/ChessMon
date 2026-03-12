@@ -60,11 +60,11 @@ export async function botRoutes(app: FastifyInstance) {
     return dashboardService.getBotDashboard(botId)
   })
 
-  app.get('/bots/:id', async (request) => {
+  app.get('/bots/:id', async (request, reply) => {
     const { id } = parseOrThrow(botIdParamSchema, request.params)
     const bot = botService.getById(id)
     if (!bot) {
-      throw { statusCode: 404, message: 'Bot not found' }
+      return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
     }
     const tactics = botService.getTactics(bot.id)
     return { bot: { ...bot, tactics, mlWeightsBlob: undefined } }
