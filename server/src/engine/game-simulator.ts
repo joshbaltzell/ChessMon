@@ -1,13 +1,17 @@
 import { Chess } from 'chess.js'
 import type { PlayParameters, SimulatedGameResult, PositionRecord, GameResult } from '../types/index.js'
 import type { StockfishPool } from './stockfish-pool.js'
-import { selectMove } from './move-selector.js'
+import { selectMove, type MoveSelectorContext } from './move-selector.js'
 
 export async function simulateGame(
   whiteParams: PlayParameters,
   blackParams: PlayParameters,
   pool: StockfishPool,
-  options: { maxMoves?: number } = {},
+  options: {
+    maxMoves?: number
+    whiteContext?: MoveSelectorContext
+    blackContext?: MoveSelectorContext
+  } = {},
 ): Promise<SimulatedGameResult> {
   const maxMoves = options.maxMoves || 200
   const chess = new Chess()
@@ -15,17 +19,19 @@ export async function simulateGame(
   let moveCount = 0
 
   while (!chess.isGameOver() && moveCount < maxMoves) {
-    const currentParams = chess.turn() === 'w' ? whiteParams : blackParams
+    const isWhite = chess.turn() === 'w'
+    const currentParams = isWhite ? whiteParams : blackParams
+    const currentContext = isWhite ? options.whiteContext : options.blackContext
     const fen = chess.fen()
 
-    const moveSan = await selectMove(chess, currentParams, pool)
-    chess.move(moveSan)
+    const { san, candidates } = await selectMove(chess, currentParams, pool, currentContext)
+    chess.move(san)
 
     positions.push({
       fen,
-      movePlayed: moveSan,
-      candidateMoves: [], // Populated if we want ML training data
-      color: moveCount % 2 === 0 ? 'w' : 'b',
+      movePlayed: san,
+      candidateMoves: candidates,
+      color: isWhite ? 'w' : 'b',
     })
 
     moveCount++
@@ -37,7 +43,6 @@ export async function simulateGame(
   } else if (chess.isDraw()) {
     result = '1/2-1/2'
   } else {
-    // Max moves reached, adjudicate as draw
     result = '1/2-1/2'
   }
 
