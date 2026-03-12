@@ -1,15 +1,18 @@
-import { eq } from 'drizzle-orm'
-import { bots, trainingLog, gameRecords } from '../db/schema.js'
+import { eq, and } from 'drizzle-orm'
+import { bots, botTactics, trainingLog, gameRecords } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { StockfishPool } from '../engine/stockfish-pool.js'
 import { simulateGame } from '../engine/game-simulator.js'
 import { botToPlayParameters, systemBotPlayParameters } from '../models/bot-intelligence.js'
 import { calculateEloChange } from '../models/elo.js'
-import { SPAR_COST, XP_PER_SPAR } from '../models/progression.js'
+import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR } from '../models/progression.js'
 import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { loadModel } from '../ml/model-store.js'
 import { generateEmotionResponse } from '../models/personality.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+const tacticsData = require('../data/tactics.json') as { tactics: Array<{ key: string; name: string; description: string; category: string; minLevel: number; cost: number }> }
 
 const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
 const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
@@ -179,5 +182,113 @@ export class TrainingService {
       },
       emotion,
     }
+  }
+
+  async purchaseTactic(botId: number, tacticKey: string) {
+    const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
+    if (!bot) throw new Error('Bot not found')
+    if (bot.trainingPointsRemaining < PURCHASE_TACTIC_COST) {
+      throw new Error(`Not enough training points. Need ${PURCHASE_TACTIC_COST}, have ${bot.trainingPointsRemaining}`)
+    }
+
+    // Validate tactic exists
+    const tactic = tacticsData.tactics.find(t => t.key === tacticKey)
+    if (!tactic) throw new Error('Unknown tactic')
+    if (bot.level < tactic.minLevel) {
+      throw new Error(`Requires level ${tactic.minLevel}, bot is level ${bot.level}`)
+    }
+
+    // Check if already owned
+    const existing = this.db.select().from(botTactics)
+      .where(and(eq(botTactics.botId, botId), eq(botTactics.tacticKey, tacticKey)))
+      .get()
+    if (existing) throw new Error('Already owns this tactic')
+
+    // Purchase
+    this.db.insert(botTactics).values({
+      botId,
+      tacticKey,
+      proficiency: 20,
+    }).run()
+
+    this.db.update(bots)
+      .set({ trainingPointsRemaining: bot.trainingPointsRemaining - PURCHASE_TACTIC_COST })
+      .where(eq(bots.id, botId))
+      .run()
+
+    this.db.insert(trainingLog).values({
+      botId,
+      level: bot.level,
+      actionType: 'purchase_tactic',
+      detailsJson: JSON.stringify({ tacticKey, tacticName: tactic.name }),
+      resultJson: JSON.stringify({ proficiency: 20 }),
+    }).run()
+
+    const emotion = generateEmotionResponse(
+      null, 'tactic_learned',
+      bot.alignmentAttack, bot.alignmentStyle, bot.level,
+    )
+
+    return {
+      tactic: { key: tacticKey, name: tactic.name, proficiency: 20 },
+      trainingPointsRemaining: bot.trainingPointsRemaining - PURCHASE_TACTIC_COST,
+      emotion,
+    }
+  }
+
+  async drill(botId: number, tacticKey: string) {
+    const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
+    if (!bot) throw new Error('Bot not found')
+    if (bot.trainingPointsRemaining < DRILL_COST) {
+      throw new Error(`Not enough training points. Need ${DRILL_COST}, have ${bot.trainingPointsRemaining}`)
+    }
+
+    // Must own the tactic
+    const owned = this.db.select().from(botTactics)
+      .where(and(eq(botTactics.botId, botId), eq(botTactics.tacticKey, tacticKey)))
+      .get()
+    if (!owned) throw new Error('Bot does not own this tactic')
+
+    // Increase proficiency (cap at 100)
+    const newProficiency = Math.min(100, owned.proficiency + 15)
+    this.db.update(botTactics)
+      .set({ proficiency: newProficiency })
+      .where(eq(botTactics.id, owned.id))
+      .run()
+
+    this.db.update(bots)
+      .set({ trainingPointsRemaining: bot.trainingPointsRemaining - DRILL_COST })
+      .where(eq(bots.id, botId))
+      .run()
+
+    this.db.insert(trainingLog).values({
+      botId,
+      level: bot.level,
+      actionType: 'drill',
+      detailsJson: JSON.stringify({ tacticKey }),
+      resultJson: JSON.stringify({ oldProficiency: owned.proficiency, newProficiency }),
+    }).run()
+
+    const emotion = generateEmotionResponse(
+      null, 'drill',
+      bot.alignmentAttack, bot.alignmentStyle, bot.level,
+    )
+
+    return {
+      tactic: { key: tacticKey, proficiency: newProficiency },
+      trainingPointsRemaining: bot.trainingPointsRemaining - DRILL_COST,
+      emotion,
+    }
+  }
+
+  getTrainingLog(botId: number) {
+    return this.db.select().from(trainingLog)
+      .where(eq(trainingLog.botId, botId))
+      .all()
+      .map(entry => ({
+        ...entry,
+        details: JSON.parse(entry.detailsJson),
+        result: JSON.parse(entry.resultJson),
+      }))
   }
 }

@@ -45,5 +45,70 @@ export function createTrainingRoutes(pool: StockfishPool) {
         throw err
       }
     })
+
+    // Purchase a tactic
+    app.post('/bots/:id/train/purchase', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const botId = parseInt(id, 10)
+      const { playerId } = request.user
+
+      const bot = botService.getById(botId)
+      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+
+      const { tactic_key } = request.body as { tactic_key: string }
+      if (!tactic_key) return reply.status(400).send({ error: 'tactic_key required', code: 'MISSING_FIELD' })
+
+      try {
+        return await trainingService.purchaseTactic(botId, tactic_key)
+      } catch (err: any) {
+        if (err.message.includes('Not enough training points')) {
+          return reply.status(400).send({ error: err.message, code: 'INSUFFICIENT_POINTS' })
+        }
+        if (err.message.includes('Already owns') || err.message.includes('Unknown tactic') || err.message.includes('Requires level')) {
+          return reply.status(400).send({ error: err.message, code: 'INVALID_PURCHASE' })
+        }
+        throw err
+      }
+    })
+
+    // Drill a tactic to increase proficiency
+    app.post('/bots/:id/train/drill', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const botId = parseInt(id, 10)
+      const { playerId } = request.user
+
+      const bot = botService.getById(botId)
+      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+
+      const { tactic_key } = request.body as { tactic_key: string }
+      if (!tactic_key) return reply.status(400).send({ error: 'tactic_key required', code: 'MISSING_FIELD' })
+
+      try {
+        return await trainingService.drill(botId, tactic_key)
+      } catch (err: any) {
+        if (err.message.includes('Not enough training points')) {
+          return reply.status(400).send({ error: err.message, code: 'INSUFFICIENT_POINTS' })
+        }
+        if (err.message.includes('does not own')) {
+          return reply.status(400).send({ error: err.message, code: 'TACTIC_NOT_OWNED' })
+        }
+        throw err
+      }
+    })
+
+    // Get training log
+    app.get('/bots/:id/training-log', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const botId = parseInt(id, 10)
+      const { playerId } = request.user
+
+      const bot = botService.getById(botId)
+      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+
+      return trainingService.getTrainingLog(botId)
+    })
   }
 }

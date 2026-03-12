@@ -1,0 +1,124 @@
+{
+  "systemBots": [
+    {
+      "level": 1,
+      "name": "Pawn Pusher",
+      "description": "A beginner bot that pushes pawns forward eagerly",
+      "elo": 400
+    },
+    {
+      "level": 2,
+      "name": "Knight Hopper",
+      "description": "Loves jumping knights around the board",
+      "elo": 500
+    },
+    {
+      "level": 3,
+      "name": "Bishop Slider",
+      "description": "Prefers diagonal play with bishops",
+      "elo": 600
+    },
+    {
+      "level": 4,
+      "name": "Rook Roller",
+      "description": "Opens files for rook play",
+      "elo": 700
+    },
+    {
+      "level": 5,
+      "name": "Castle Guard",
+      "description": "Always castles early and defends the king",
+      "elo": 800
+    },
+    {
+      "level": 6,
+      "name": "Pin Master",
+      "description": "Loves creating pins and skewers",
+      "elo": 900
+    },
+    {
+      "level": 7,
+      "name": "Fork Finder",
+      "description": "Looks for knight forks constantly",
+      "elo": 1000
+    },
+    {
+      "level": 8,
+      "name": "Center Controller",
+      "description": "Fights fiercely for central squares",
+      "elo": 1100
+    },
+    {
+      "level": 9,
+      "name": "File Opener",
+      "description": "Opens files and invades with heavy pieces",
+      "elo": 1200
+    },
+    {
+      "level": 10,
+      "name": "Endgame Grinder",
+      "description": "Simplifies into winning endgames",
+      "elo": 1300
+    },
+    {
+      "level": 11,
+      "name": "Tempo Hunter",
+      "description": "Gains tempo with every move",
+      "elo": 1400
+    },
+    {
+      "level": 12,
+      "name": "Space Invader",
+      "description": "Grabs space and restricts opponent",
+      "elo": 1500
+    },
+    {
+      "level": 13,
+      "name": "Quiet Assassin",
+      "description": "Makes strong quiet moves that build pressure",
+      "elo": 1600
+    },
+    {
+      "level": 14,
+      "name": "Exchange Master",
+      "description": "Knows when to trade and when to keep pieces",
+      "elo": 1700
+    },
+    {
+      "level": 15,
+      "name": "Prophylaxis Pro",
+      "description": "Prevents opponent plans before executing own",
+      "elo": 1800
+    },
+    {
+      "level": 16,
+      "name": "Calculation Engine",
+      "description": "Calculates deeply and accurately",
+      "elo": 1900
+    },
+    {
+      "level": 17,
+      "name": "Positional Sage",
+      "description": "Deep positional understanding",
+      "elo": 2000
+    },
+    {
+      "level": 18,
+      "name": "Tactical Storm",
+      "description": "Finds brilliant tactical shots",
+      "elo": 2100
+    },
+    {
+      "level": 19,
+      "name": "Grandmaster Ghost",
+      "description": "Plays at near-grandmaster strength",
+      "elo": 2200
+    },
+    {
+      "level": 20,
+      "name": "Stockfish Ceiling",
+      "description": "The ultimate challenge - full engine strength",
+      "elo": 2400
+    }
+  ]
+}
