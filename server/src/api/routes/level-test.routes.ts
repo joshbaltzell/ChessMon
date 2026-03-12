@@ -3,6 +3,9 @@ import { LevelTestService } from '../../services/level-test.service.js'
 import { BotService } from '../../services/bot.service.js'
 import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
+import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
+
+const levelTestLimiter = new ConcurrencyLimiter(4) // Level tests are heavier (3-5 games each)
 
 export function createLevelTestRoutes(pool: StockfishPool) {
   return async function levelTestRoutes(app: FastifyInstance) {
@@ -28,7 +31,9 @@ export function createLevelTestRoutes(pool: StockfishPool) {
       }
 
       try {
-        const result = await levelTestService.startLevelTest(botId)
+        const result = await levelTestLimiter.run(() =>
+          levelTestService.startLevelTest(botId)
+        )
         return result
       } catch (err: any) {
         return reply.status(400).send({ error: err.message, code: 'LEVEL_TEST_ERROR' })

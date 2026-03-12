@@ -3,6 +3,10 @@ import { TrainingService } from '../../services/training.service.js'
 import { BotService } from '../../services/bot.service.js'
 import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
+import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
+
+// Limit concurrent game simulations to prevent Stockfish pool saturation
+const sparLimiter = new ConcurrencyLimiter(8)
 
 export function createTrainingRoutes(pool: StockfishPool) {
   return async function trainingRoutes(app: FastifyInstance) {
@@ -31,11 +35,13 @@ export function createTrainingRoutes(pool: StockfishPool) {
       }
 
       try {
-        const result = await trainingService.spar(
-          botId,
-          body.opponent,
-          body.opponent_level,
-          body.opponent_bot_id,
+        const result = await sparLimiter.run(() =>
+          trainingService.spar(
+            botId,
+            body.opponent,
+            body.opponent_level,
+            body.opponent_bot_id,
+          )
         )
         return result
       } catch (err: any) {

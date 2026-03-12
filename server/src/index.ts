@@ -18,10 +18,18 @@ async function main() {
   app.log.info('Database initialized')
 
   // Initialize Stockfish pool
-  const pool = new StockfishPool(config.stockfishPoolSize)
+  const pool = new StockfishPool(config.stockfishPoolSize, {
+    requestTimeoutMs: config.stockfishRequestTimeoutMs,
+  })
   app.log.info(`Initializing Stockfish pool with ${config.stockfishPoolSize} workers...`)
   await pool.initialize()
   app.log.info('Stockfish pool ready')
+
+  // Health/stats endpoint
+  app.get('/api/v1/health', async () => ({
+    status: 'ok',
+    stockfish: pool.getStats(),
+  }))
 
   // Register routes
   await registerRoutes(app, pool)

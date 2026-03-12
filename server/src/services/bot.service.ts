@@ -4,6 +4,8 @@ import type { DrizzleDb } from '../db/connection.js'
 import type { AlignmentAttack, AlignmentStyle } from '../types/index.js'
 import { ATTRIBUTE_TOTAL, ATTRIBUTE_MIN, ATTRIBUTE_MAX } from '../types/index.js'
 
+export const MAX_BOTS_PER_PLAYER = 3
+
 export interface CreateBotInput {
   playerId: number
   name: string
@@ -51,9 +53,9 @@ export class BotService {
   }
 
   create(input: CreateBotInput) {
-    const existing = this.db.select().from(bots).where(eq(bots.playerId, input.playerId)).get()
-    if (existing) {
-      throw new Error('Player already has a bot')
+    const existing = this.db.select().from(bots).where(eq(bots.playerId, input.playerId)).all()
+    if (existing.length >= MAX_BOTS_PER_PLAYER) {
+      throw new Error(`Player already has ${MAX_BOTS_PER_PLAYER} bots (maximum)`)
     }
 
     const nameExists = this.db.select().from(bots).where(eq(bots.name, input.name)).get()
@@ -79,7 +81,7 @@ export class BotService {
   }
 
   getByPlayerId(playerId: number) {
-    return this.db.select().from(bots).where(eq(bots.playerId, playerId)).get()
+    return this.db.select().from(bots).where(eq(bots.playerId, playerId)).all()
   }
 
   getLeaderboard(limit = 20, offset = 0) {

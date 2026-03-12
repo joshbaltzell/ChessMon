@@ -10,21 +10,38 @@ interface AnalysisRequest {
   multiPv: number
   resolve: (moves: CandidateMove[]) => void
   reject: (err: Error) => void
+  enqueueTime: number
 }
 
 interface StockfishWorker {
   process: ChildProcess
   busy: boolean
   ready: boolean
+  id: number
+}
+
+export interface PoolStats {
+  totalWorkers: number
+  busyWorkers: number
+  queueDepth: number
+  avgWaitMs: number
 }
 
 export class StockfishPool {
   private workers: StockfishWorker[] = []
   private queue: AnalysisRequest[] = []
   private enginePath: string
+  private nextWorkerId = 0
+  private totalWaitMs = 0
+  private completedRequests = 0
+  private requestTimeout: number
 
-  constructor(private poolSize: number = 4) {
+  constructor(
+    private poolSize: number = 4,
+    options?: { requestTimeoutMs?: number },
+  ) {
     this.enginePath = require.resolve('stockfish/bin/stockfish.js')
+    this.requestTimeout = options?.requestTimeoutMs ?? 30_000
   }
 
   async initialize(): Promise<void> {
@@ -37,6 +54,47 @@ export class StockfishPool {
     await Promise.all(initPromises)
   }
 
+  /**
+   * Dynamically resize the pool. New workers are spawned or excess workers killed.
+   */
+  async resize(newSize: number): Promise<void> {
+    if (newSize < 1) throw new Error('Pool size must be at least 1')
+
+    if (newSize > this.workers.length) {
+      const spawnCount = newSize - this.workers.length
+      const promises: Promise<void>[] = []
+      for (let i = 0; i < spawnCount; i++) {
+        promises.push(this.spawnWorker())
+      }
+      await Promise.all(promises)
+    } else if (newSize < this.workers.length) {
+      // Kill idle workers first, then busy ones
+      const idle = this.workers.filter(w => !w.busy)
+      const busy = this.workers.filter(w => w.busy)
+      const toKill = [...idle, ...busy].slice(0, this.workers.length - newSize)
+
+      for (const worker of toKill) {
+        try {
+          worker.process.stdin!.write('quit\n')
+          worker.process.kill()
+        } catch { /* ignore */ }
+        const idx = this.workers.indexOf(worker)
+        if (idx >= 0) this.workers.splice(idx, 1)
+      }
+    }
+
+    this.poolSize = newSize
+  }
+
+  getStats(): PoolStats {
+    return {
+      totalWorkers: this.workers.length,
+      busyWorkers: this.workers.filter(w => w.busy).length,
+      queueDepth: this.queue.length,
+      avgWaitMs: this.completedRequests > 0 ? this.totalWaitMs / this.completedRequests : 0,
+    }
+  }
+
   private spawnWorker(): Promise<void> {
     return new Promise((resolve, reject) => {
       const proc = fork(this.enginePath, [], {
@@ -44,7 +102,8 @@ export class StockfishPool {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       })
 
-      const worker: StockfishWorker = { process: proc, busy: false, ready: false }
+      const workerId = this.nextWorkerId++
+      const worker: StockfishWorker = { process: proc, busy: false, ready: false, id: workerId }
       this.workers.push(worker)
 
       let initBuffer = ''
@@ -70,7 +129,7 @@ export class StockfishPool {
       }
 
       proc.stdout!.on('data', onData)
-      proc.stderr!.on('data', (data: Buffer) => {
+      proc.stderr!.on('data', () => {
         // Stockfish can be noisy on stderr, ignore
       })
 
@@ -81,6 +140,10 @@ export class StockfishPool {
       proc.on('exit', () => {
         const idx = this.workers.indexOf(worker)
         if (idx >= 0) this.workers.splice(idx, 1)
+        // If worker died unexpectedly and pool is below target size, respawn
+        if (this.workers.length < this.poolSize) {
+          this.spawnWorker().catch(() => {})
+        }
       })
 
       proc.stdin!.write('uci\n')
@@ -89,7 +152,35 @@ export class StockfishPool {
 
   async analyze(fen: string, depth: number, multiPv: number = 5): Promise<CandidateMove[]> {
     return new Promise((resolve, reject) => {
-      const request: AnalysisRequest = { fen, depth, multiPv, resolve, reject }
+      const request: AnalysisRequest = {
+        fen, depth, multiPv, resolve, reject,
+        enqueueTime: Date.now(),
+      }
+
+      // Timeout: reject if waiting too long in queue
+      const timer = setTimeout(() => {
+        const idx = this.queue.indexOf(request)
+        if (idx >= 0) {
+          this.queue.splice(idx, 1)
+          reject(new Error(`Analysis request timed out after ${this.requestTimeout}ms`))
+        }
+      }, this.requestTimeout)
+
+      const originalResolve = resolve
+      request.resolve = (moves) => {
+        clearTimeout(timer)
+        const waitMs = Date.now() - request.enqueueTime
+        this.totalWaitMs += waitMs
+        this.completedRequests++
+        originalResolve(moves)
+      }
+
+      const originalReject = reject
+      request.reject = (err) => {
+        clearTimeout(timer)
+        originalReject(err)
+      }
+
       this.queue.push(request)
       this.processQueue()
     })

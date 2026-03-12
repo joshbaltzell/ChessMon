@@ -30,8 +30,8 @@ export async function botRoutes(app: FastifyInstance) {
       const bot = botService.create(input)
       return { bot }
     } catch (err: any) {
-      if (err.message === 'Player already has a bot') {
-        return reply.status(409).send({ error: err.message, code: 'BOT_EXISTS' })
+      if (err.message.includes('bots (maximum)')) {
+        return reply.status(409).send({ error: err.message, code: 'MAX_BOTS' })
       }
       if (err.message === 'Bot name already taken') {
         return reply.status(409).send({ error: err.message, code: 'NAME_TAKEN' })
@@ -41,8 +41,8 @@ export async function botRoutes(app: FastifyInstance) {
   })
 
   app.get('/bots/mine', { onRequest: [app.authenticate] }, async (request) => {
-    const bot = botService.getByPlayerId(request.user.playerId)
-    return { bot: bot || null }
+    const playerBots = botService.getByPlayerId(request.user.playerId)
+    return { bots: playerBots }
   })
 
   app.get('/bots/:id', async (request) => {
