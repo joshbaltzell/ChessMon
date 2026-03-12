@@ -1,7 +1,7 @@
 import type { PlayParameters, CandidateMove } from '../types/index.js'
 import type { StockfishPool } from './stockfish-pool.js'
 import type { PreferenceModel } from '../ml/preference-model.js'
-import { extractFeatures } from '../ml/feature-extractor.js'
+import { extractFeaturesBatch } from '../ml/feature-extractor.js'
 import { Chess } from 'chess.js'
 
 export interface MoveSelectorContext {
@@ -28,8 +28,9 @@ export async function selectMove(
   }
 
   // Step 1: Opening book check
+  const fen = chess.fen()
   if (params.openingBook) {
-    const fenPrefix = chess.fen().split(' ').slice(0, 4).join(' ')
+    const fenPrefix = fen.split(' ').slice(0, 4).join(' ')
     const bookMove = params.openingBook.positions[fenPrefix]
     if (bookMove && Math.random() < params.openingBook.proficiency / 100) {
       if (legalMoves.includes(bookMove)) {
@@ -44,58 +45,59 @@ export async function selectMove(
   }
 
   // Step 3: Get Stockfish candidates
-  const fen = chess.fen()
   const candidates = await pool.analyze(fen, params.searchDepth, params.multiPv)
 
   if (candidates.length === 0) {
     return { san: legalMoves[Math.floor(Math.random() * legalMoves.length)], candidates: [] }
   }
 
-  // Convert UCI moves to SAN
-  const candidatesWithSan = candidates.map(c => {
+  // Convert UCI moves to SAN — reuse single Chess instance with move/undo
+  const candidatesWithSan: Array<CandidateMove & { san: string; moveObj: ReturnType<Chess['move']> }> = []
+  for (const c of candidates) {
     try {
-      const tempChess = new Chess(fen)
-      const move = tempChess.move({ from: c.move.slice(0, 2), to: c.move.slice(2, 4), promotion: c.move[4] })
-      return { ...c, san: move.san, moveObj: move }
+      const move = chess.move({ from: c.move.slice(0, 2), to: c.move.slice(2, 4), promotion: c.move[4] })
+      candidatesWithSan.push({ ...c, san: move.san, moveObj: move })
+      chess.undo()
     } catch {
-      return null
+      // invalid move from stockfish, skip
     }
-  }).filter((c): c is NonNullable<typeof c> => c !== null)
+  }
 
   if (candidatesWithSan.length === 0) {
     return { san: legalMoves[Math.floor(Math.random() * legalMoves.length)], candidates }
   }
 
   // Step 4: Attribute-based scoring
+  // Compute material once, reuse for all candidates
+  const totalMaterial = estimateMaterialFromBoard(chess.board())
+  const isEndgame = totalMaterial <= 24
   const maxCp = Math.max(...candidatesWithSan.map(c => Math.abs(c.centipawns)), 1)
+  const topCp = candidatesWithSan[0]?.centipawns || 0
 
   const scores = candidatesWithSan.map((c, idx) => {
-    const baseScore = (c.centipawns + maxCp) / (2 * maxCp) // 0-1
+    const baseScore = (c.centipawns + maxCp) / (2 * maxCp)
 
     const isCapture = c.moveObj.captured !== undefined
     const isCheck = c.san.includes('+') || c.san.includes('#')
     const isPromotion = c.moveObj.promotion !== undefined
     const isCastling = c.san === 'O-O' || c.san === 'O-O-O'
 
-    // --- Aggression: rewards violent moves ---
     const aggressionBonus = params.aggressionWeight * (
       0.25 * (isCapture ? 1 : 0) +
       0.35 * (isCheck ? 1 : 0) +
       0.15 * (isPromotion ? 1 : 0) +
       0.10 * (c.moveObj.captured === 'q' ? 1 : c.moveObj.captured === 'r' ? 0.5 : 0) +
-      0.15 * (isCapture && c.centipawns > (candidatesWithSan[0]?.centipawns || 0) - 50 ? 1 : 0)
+      0.15 * (isCapture && c.centipawns > topCp - 50 ? 1 : 0)
     )
 
-    // --- Positional: trusts engine evaluation, rewards quiet strong moves ---
     const positionalBonus = params.positionalWeight * (
       0.6 * baseScore +
       0.2 * (isCastling ? 1 : 0) +
       0.2 * (!isCapture && !isCheck && baseScore > 0.6 ? 1 : 0)
     )
 
-    // --- Tactical: rewards combinations and eval swings ---
     const evalSwing = idx > 0
-      ? Math.abs(c.centipawns - (candidatesWithSan[0]?.centipawns || 0)) / maxCp
+      ? Math.abs(c.centipawns - topCp) / maxCp
       : 0
     const tacticalBonus = params.tacticalWeight * (
       0.3 * (isCapture ? 1 : 0) +
@@ -104,9 +106,6 @@ export async function selectMove(
       0.2 * (isPromotion ? 1 : 0)
     )
 
-    // --- Endgame: plays more accurately when fewer pieces ---
-    const totalMaterial = estimateMaterial(chess)
-    const isEndgame = totalMaterial <= 24
     const endgameBonus = isEndgame
       ? params.endgameWeight * baseScore * 0.8
       : params.endgameWeight * baseScore * 0.2
@@ -114,16 +113,16 @@ export async function selectMove(
     return baseScore + aggressionBonus + positionalBonus + tacticalBonus + endgameBonus
   })
 
-  // Step 5: ML preference adjustment
+  // Step 5: ML preference adjustment — uses batch extraction (single Chess + board() call)
   let finalScores = scores
   if (context?.mlModel && context.botColor && context.botAttributes) {
     try {
-      const featureBatch = candidatesWithSan.map((c, idx) =>
-        extractFeatures(
-          fen, c.san, idx, candidatesWithSan.length, c.centipawns,
-          context.botColor!, context.botAttributes!,
-          context.alignmentAttack ?? 1, context.alignmentStyle ?? 1,
-        )
+      const featureBatch = extractFeaturesBatch(
+        fen,
+        candidatesWithSan.map((c, idx) => ({ san: c.san, centipawns: c.centipawns, index: idx })),
+        candidatesWithSan.length,
+        context.botColor, context.botAttributes,
+        context.alignmentAttack ?? 1, context.alignmentStyle ?? 1,
       )
       const mlScores = context.mlModel.predict(featureBatch)
       finalScores = scores.map((s, i) => 0.7 * s + 0.3 * mlScores[i])
@@ -152,10 +151,10 @@ export async function selectMove(
   return { san: candidatesWithSan[0].san, candidates }
 }
 
-function estimateMaterial(chess: Chess): number {
+function estimateMaterialFromBoard(board: ReturnType<Chess['board']>): number {
   const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 }
   let total = 0
-  for (const row of chess.board()) {
+  for (const row of board) {
     for (const piece of row) {
       if (piece && piece.type !== 'k') {
         total += pieceValues[piece.type] || 0

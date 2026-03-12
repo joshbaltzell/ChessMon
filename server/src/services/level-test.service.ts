@@ -86,14 +86,8 @@ export class LevelTestService {
       alignmentStyle: ALIGNMENT_STYLE_MAP[bot.alignmentStyle] ?? 1,
     }
 
-    // Play all test games
-    const games: LevelTestGameResult[] = []
-    let wins = 0
-    let losses = 0
-    let draws = 0
-    let totalEloChange = 0
-
-    for (const opponent of opponents) {
+    // Play all test games in parallel — each gets its own context copy
+    const gamePromises = opponents.map(async (opponent) => {
       const opponentParams = opponent.type === 'system'
         ? systemBotPlayParameters(opponent.level!)
         : botToPlayParameters(
@@ -102,19 +96,40 @@ export class LevelTestService {
 
       const botIsWhite = Math.random() < 0.5
       const botColor = botIsWhite ? 'w' as const : 'b' as const
-      botContext.botColor = botColor
+
+      // Each parallel game needs its own context (botColor differs)
+      const gameContext: MoveSelectorContext = {
+        mlModel: botContext.mlModel,
+        botColor,
+        botAttributes: botContext.botAttributes,
+        alignmentAttack: botContext.alignmentAttack,
+        alignmentStyle: botContext.alignmentStyle,
+      }
 
       const gameResult = await simulateGame(
         botIsWhite ? botParams : opponentParams,
         botIsWhite ? opponentParams : botParams,
         this.pool,
         {
-          whiteContext: botIsWhite ? botContext : undefined,
-          blackContext: botIsWhite ? undefined : botContext,
+          whiteContext: botIsWhite ? gameContext : undefined,
+          blackContext: botIsWhite ? undefined : gameContext,
         },
       )
 
-      // ML training from each game
+      return { opponent, gameResult, botIsWhite, botColor }
+    })
+
+    const completedGames = await Promise.all(gamePromises)
+
+    // Process results sequentially (ML training mutates model, DB writes are serialized)
+    const games: LevelTestGameResult[] = []
+    let wins = 0
+    let losses = 0
+    let draws = 0
+    let totalEloChange = 0
+
+    for (const { opponent, gameResult, botIsWhite, botColor } of completedGames) {
+      // ML training from each game (sequential — model mutation)
       await trainBotFromGame(
         this.db, botId, gameResult.positions, gameResult.result, botColor,
         {
@@ -125,18 +140,15 @@ export class LevelTestService {
         },
       )
 
-      // Elo
       const eloChange = calculateEloChange(bot.elo + totalEloChange, opponent.elo, gameResult.result, botIsWhite)
       totalEloChange += eloChange
 
-      // Track result
       const botWon = (gameResult.result === '1-0' && botIsWhite) || (gameResult.result === '0-1' && !botIsWhite)
       const botLost = (gameResult.result === '1-0' && !botIsWhite) || (gameResult.result === '0-1' && botIsWhite)
       if (botWon) wins++
       else if (botLost) losses++
       else draws++
 
-      // Store game record
       const gameRecord = this.db.insert(gameRecords).values({
         whiteBotId: botIsWhite ? botId : (opponent.botId || null),
         blackBotId: botIsWhite ? (opponent.botId || null) : botId,

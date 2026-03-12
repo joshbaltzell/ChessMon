@@ -47,10 +47,12 @@ export class PreferenceModel {
    */
   predict(featureBatch: Float32Array[]): number[] {
     return tf.tidy(() => {
-      const input = tf.tensor2d(
-        featureBatch.map(f => Array.from(f)),
-        [featureBatch.length, FEATURE_DIM],
-      )
+      // Concatenate Float32Arrays directly into a single buffer — avoids Array.from() overhead
+      const flat = new Float32Array(featureBatch.length * FEATURE_DIM)
+      for (let i = 0; i < featureBatch.length; i++) {
+        flat.set(featureBatch[i], i * FEATURE_DIM)
+      }
+      const input = tf.tensor2d(flat, [featureBatch.length, FEATURE_DIM])
       const output = this.model.predict(input) as tf.Tensor
       return Array.from(output.dataSync())
     })
@@ -64,14 +66,15 @@ export class PreferenceModel {
       return { epochLosses: [], samplesUsed: 0 }
     }
 
-    const xs = tf.tensor2d(
-      samples.map(s => Array.from(s.features)),
-      [samples.length, FEATURE_DIM],
-    )
-    const ys = tf.tensor2d(
-      samples.map(s => [s.label]),
-      [samples.length, 1],
-    )
+    // Concatenate into flat typed arrays — avoids per-sample Array.from() allocations
+    const xFlat = new Float32Array(samples.length * FEATURE_DIM)
+    const yFlat = new Float32Array(samples.length)
+    for (let i = 0; i < samples.length; i++) {
+      xFlat.set(samples[i].features, i * FEATURE_DIM)
+      yFlat[i] = samples[i].label
+    }
+    const xs = tf.tensor2d(xFlat, [samples.length, FEATURE_DIM])
+    const ys = tf.tensor2d(yFlat, [samples.length, 1])
 
     const history = await this.model.fit(xs, ys, {
       epochs,

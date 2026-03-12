@@ -204,24 +204,33 @@ export class StockfishPool {
   private runAnalysis(worker: StockfishWorker, request: AnalysisRequest): Promise<void> {
     return new Promise((resolve) => {
       const candidates: Map<number, CandidateMove> = new Map()
-      let buffer = ''
+      const chunks: string[] = []
+      let remainder = ''
 
       const onData = (data: Buffer) => {
-        buffer += data.toString()
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // Keep incomplete line in buffer
+        // Use chunk array to avoid O(n) string concatenation on each data event
+        const text = remainder + data.toString()
+        const lastNewline = text.lastIndexOf('\n')
+
+        if (lastNewline === -1) {
+          remainder = text
+          return
+        }
+
+        remainder = text.slice(lastNewline + 1)
+        const completePart = text.slice(0, lastNewline)
+        const lines = completePart.split('\n')
 
         for (const line of lines) {
-          const trimmed = line.trim()
+          // Skip lines that clearly aren't relevant (fast prefix check)
+          if (line.length < 4) continue
 
-          if (trimmed.startsWith('info depth')) {
-            const parsed = this.parseInfoLine(trimmed, request.depth)
+          if (line.charCodeAt(0) === 105 /* 'i' */ && line.startsWith('info depth')) {
+            const parsed = this.parseInfoLine(line, request.depth)
             if (parsed) {
               candidates.set(parsed.pvIndex, parsed.candidate)
             }
-          }
-
-          if (trimmed.startsWith('bestmove')) {
+          } else if (line.charCodeAt(0) === 98 /* 'b' */ && line.startsWith('bestmove')) {
             worker.process.stdout!.removeListener('data', onData)
 
             const result = Array.from(candidates.values())
@@ -236,24 +245,28 @@ export class StockfishPool {
 
       worker.process.stdout!.on('data', onData)
 
-      // Send UCI commands
-      worker.process.stdin!.write(`setoption name MultiPV value ${request.multiPv}\n`)
-      worker.process.stdin!.write(`position fen ${request.fen}\n`)
-      worker.process.stdin!.write(`go depth ${request.depth}\n`)
+      // Send UCI commands in a single write to reduce IPC overhead
+      worker.process.stdin!.write(
+        `setoption name MultiPV value ${request.multiPv}\nposition fen ${request.fen}\ngo depth ${request.depth}\n`
+      )
     })
   }
 
+  // Precompiled regexes for parseInfoLine — avoids recompilation per call
+  private static RE_DEPTH = /depth (\d+)/
+  private static RE_MULTIPV = /multipv (\d+)/
+  private static RE_SCORE = /score (cp|mate) (-?\d+)/
+  private static RE_PV = / pv (.+)$/
+
   private parseInfoLine(line: string, targetDepth: number): { pvIndex: number; candidate: CandidateMove } | null {
-    const depthMatch = line.match(/depth (\d+)/)
-    const multiPvMatch = line.match(/multipv (\d+)/)
-    const scoreMatch = line.match(/score (cp|mate) (-?\d+)/)
-    const pvMatch = line.match(/ pv (.+)$/)
+    const depthMatch = line.match(StockfishPool.RE_DEPTH)
+    if (!depthMatch || parseInt(depthMatch[1]) !== targetDepth) return null
 
-    if (!depthMatch || !scoreMatch || !pvMatch) return null
+    const scoreMatch = line.match(StockfishPool.RE_SCORE)
+    const pvMatch = line.match(StockfishPool.RE_PV)
+    if (!scoreMatch || !pvMatch) return null
 
-    const depth = parseInt(depthMatch[1])
-    if (depth !== targetDepth) return null
-
+    const multiPvMatch = line.match(StockfishPool.RE_MULTIPV)
     const pvIndex = multiPvMatch ? parseInt(multiPvMatch[1]) : 1
     const scoreType = scoreMatch[1]
     const scoreValue = parseInt(scoreMatch[2])
