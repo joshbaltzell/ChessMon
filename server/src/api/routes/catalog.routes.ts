@@ -3,6 +3,7 @@ import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 const tacticsData = require('../../data/tactics.json') as { tactics: Array<{ key: string; name: string; description: string; category: string; minLevel: number; cost: number }> }
 const systemBotsData = require('../../data/system-bots.json') as { systemBots: Array<{ level: number; name: string; description: string; elo: number }> }
+const cosmeticsData = require('../../data/cosmetics.json') as Record<string, unknown>
 
 export async function catalogRoutes(app: FastifyInstance) {
   // Public endpoints - no auth required
@@ -36,5 +37,9 @@ export async function catalogRoutes(app: FastifyInstance) {
       level: parseInt(level),
       ...config,
     }))
+  })
+
+  app.get('/catalog/cosmetics', async () => {
+    return cosmeticsData
   })
 }
