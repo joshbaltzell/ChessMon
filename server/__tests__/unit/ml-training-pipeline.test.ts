@@ -8,19 +8,20 @@ function makePosition(
   candidateRank: number = 0,
 ): PositionRecord {
   const candidates: CandidateMove[] = [
-    { move: 'bestmove', centipawns: 100, mate: null, pv: ['bestmove'] },
-    { move: 'secondbest', centipawns: 50, mate: null, pv: ['secondbest'] },
-    { move: 'thirdbest', centipawns: 0, mate: null, pv: ['thirdbest'] },
+    { move: 'e2e4', centipawns: 100, mate: null, pv: ['e2e4'] },
+    { move: 'd2d4', centipawns: 50, mate: null, pv: ['d2d4'] },
+    { move: 'g1f3', centipawns: 0, mate: null, pv: ['g1f3'] },
   ]
 
-  // Set the played move to match the expected rank in candidates
-  if (candidateRank < candidates.length) {
-    candidates[candidateRank].move = movePlayed
-  }
+  // Set movePlayedUci to match the expected rank in candidates
+  const movePlayedUci = candidateRank < candidates.length
+    ? candidates[candidateRank].move
+    : 'unknown'
 
   return {
     fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
     movePlayed,
+    movePlayedUci,
     candidateMoves: candidates,
     color,
   }
@@ -69,8 +70,8 @@ describe('ML Training Pipeline - Label Positions', () => {
 
     const samples = labelPositions(positions, '0-1', 'w', ATTRS)
     expect(samples.length).toBe(1)
-    // Bad move in a loss should have low label
-    expect(samples[0].label).toBeLessThan(0.3)
+    // Bad move in a loss should have low label (0.1-0.35 range with noise)
+    expect(samples[0].label).toBeLessThan(0.4)
   })
 
   it('should give moderate labels for draws', () => {

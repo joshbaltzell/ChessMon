@@ -76,15 +76,18 @@ export class PreferenceModel {
     const xs = tf.tensor2d(xFlat, [samples.length, FEATURE_DIM])
     const ys = tf.tensor2d(yFlat, [samples.length, 1])
 
-    const history = await this.model.fit(xs, ys, {
-      epochs,
-      batchSize: Math.min(32, samples.length),
-      shuffle: true,
-      verbose: 0,
-    })
-
-    xs.dispose()
-    ys.dispose()
+    let history: tf.History
+    try {
+      history = await this.model.fit(xs, ys, {
+        epochs,
+        batchSize: Math.min(32, samples.length),
+        shuffle: true,
+        verbose: 0,
+      })
+    } finally {
+      xs.dispose()
+      ys.dispose()
+    }
 
     return {
       epochLosses: history.history.loss as number[],

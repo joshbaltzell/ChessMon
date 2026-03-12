@@ -38,6 +38,7 @@ export interface CandidateMove {
 export interface PositionRecord {
   fen: string
   movePlayed: string
+  movePlayedUci?: string
   candidateMoves: CandidateMove[]
   color: 'w' | 'b'
 }

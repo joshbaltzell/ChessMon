@@ -41,7 +41,8 @@ export class PlayService {
       botMove = await this.makeBotMove(sessionId, bot)
     }
 
-    const session = this.db.select().from(playSessions).where(eq(playSessions.id, sessionId)).get()!
+    const session = this.db.select().from(playSessions).where(eq(playSessions.id, sessionId)).get()
+    if (!session) throw new Error('Session not found')
 
     return {
       sessionId,
@@ -84,7 +85,8 @@ export class PlayService {
       .run()
 
     // Bot responds
-    const bot = this.db.select().from(bots).where(eq(bots.id, session.botId)).get()!
+    const bot = this.db.select().from(bots).where(eq(bots.id, session.botId)).get()
+    if (!bot) throw new Error('Bot not found')
     const botMove = await this.makeBotMove(sessionId, bot)
 
     // Re-read session after bot move
@@ -114,7 +116,8 @@ export class PlayService {
       .run()
 
     // Record game
-    const bot = this.db.select().from(bots).where(eq(bots.id, session.botId)).get()!
+    const bot = this.db.select().from(bots).where(eq(bots.id, session.botId)).get()
+    if (!bot) throw new Error('Bot not found')
     this.recordGame(session, bot, result)
 
     const emotion = generateEmotionResponse(
@@ -130,7 +133,8 @@ export class PlayService {
   }
 
   private async makeBotMove(sessionId: string, bot: typeof bots.$inferSelect): Promise<string> {
-    const session = this.db.select().from(playSessions).where(eq(playSessions.id, sessionId)).get()!
+    const session = this.db.select().from(playSessions).where(eq(playSessions.id, sessionId)).get()
+    if (!session) throw new Error('Session not found')
     const chess = new Chess(session.fen)
 
     if (chess.isGameOver()) {
@@ -185,8 +189,10 @@ export class PlayService {
       .where(eq(playSessions.id, sessionId))
       .run()
 
-    const session = this.db.select().from(playSessions).where(eq(playSessions.id, sessionId)).get()!
-    const bot = this.db.select().from(bots).where(eq(bots.id, session.botId)).get()!
+    const session = this.db.select().from(playSessions).where(eq(playSessions.id, sessionId)).get()
+    if (!session) throw new Error('Session not found')
+    const bot = this.db.select().from(bots).where(eq(bots.id, session.botId)).get()
+    if (!bot) throw new Error('Bot not found')
 
     this.recordGame(session, bot, result)
 
@@ -218,7 +224,7 @@ export class PlayService {
       blackBotId: botIsWhite ? null : bot.id,
       pgn: session.pgnSoFar,
       result,
-      moveCount: Math.ceil(session.pgnSoFar.split(/\d+\./).length / 2),
+      moveCount: (session.pgnSoFar.match(/\d+\./g) || []).length,
       context: 'human_play',
     }).run()
   }

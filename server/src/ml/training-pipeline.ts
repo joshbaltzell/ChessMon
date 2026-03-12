@@ -86,13 +86,19 @@ export function labelPositions(
 function getCandidateRank(pos: PositionRecord): number {
   if (pos.candidateMoves.length === 0) return 2 // No data, assume middling
 
-  for (let i = 0; i < pos.candidateMoves.length; i++) {
-    // Compare by UCI move string since that's what we have in candidates
-    if (pos.candidateMoves[i].move === pos.movePlayed) {
-      return i
+  // Compare using UCI if available (candidateMoves[i].move is UCI format)
+  const uci = pos.movePlayedUci
+  if (uci) {
+    for (let i = 0; i < pos.candidateMoves.length; i++) {
+      if (pos.candidateMoves[i].move === uci) {
+        return i
+      }
     }
   }
-  return 99
+
+  // Fallback: no UCI available (e.g. opening book moves, blunders)
+  // Can't reliably compare SAN to UCI, so assume middling rank
+  return 2
 }
 
 /**

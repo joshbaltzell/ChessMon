@@ -122,9 +122,9 @@ describe('E2E Integration: Full Player Journey', () => {
     expect(log.length).toBe(4) // 2 spars + 1 purchase + 1 drill
 
     // 15. Leaderboard should show our bot
-    const leaderboard = botService.getLeaderboard()
+    const leaderboard = botService.getLeaderboard(100, 0)
     expect(leaderboard.length).toBeGreaterThan(0)
-    expect(leaderboard.find(b => b.name === botName)).toBeTruthy()
+    expect(leaderboard.some(b => b.name === botName)).toBeTruthy()
 
     // 16. One more spar to use up points (costs 2, have 2)
     const spar3 = await trainingService.spar(bot.id, 'system', 1)

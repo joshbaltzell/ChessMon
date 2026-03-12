@@ -17,7 +17,7 @@ export async function selectMove(
   params: PlayParameters,
   pool: StockfishPool,
   context?: MoveSelectorContext,
-): Promise<{ san: string; candidates: CandidateMove[] }> {
+): Promise<{ san: string; uci?: string; candidates: CandidateMove[] }> {
   const legalMoves = chess.moves()
   if (legalMoves.length === 0) {
     throw new Error('No legal moves available')
@@ -136,6 +136,10 @@ export async function selectMove(
   const maxScore = Math.max(...finalScores)
   const expScores = finalScores.map(s => Math.exp((s - maxScore) / temperature))
   const sumExp = expScores.reduce((a, b) => a + b, 0)
+  // Guard against division by zero (all scores underflowed)
+  if (sumExp === 0) {
+    return { san: candidatesWithSan[0].san, uci: candidatesWithSan[0].move, candidates }
+  }
   const probabilities = expScores.map(e => e / sumExp)
 
   // Sample
@@ -144,11 +148,11 @@ export async function selectMove(
   for (let i = 0; i < probabilities.length; i++) {
     cumulative += probabilities[i]
     if (roll < cumulative) {
-      return { san: candidatesWithSan[i].san, candidates }
+      return { san: candidatesWithSan[i].san, uci: candidatesWithSan[i].move, candidates }
     }
   }
 
-  return { san: candidatesWithSan[0].san, candidates }
+  return { san: candidatesWithSan[0].san, uci: candidatesWithSan[0].move, candidates }
 }
 
 function estimateMaterialFromBoard(board: ReturnType<Chess['board']>): number {

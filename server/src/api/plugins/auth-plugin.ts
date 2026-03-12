@@ -13,7 +13,7 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
     try {
       await request.jwtVerify()
     } catch (err) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'AUTH_REQUIRED' })
+      return reply.status(401).send({ error: 'Unauthorized', code: 'AUTH_REQUIRED' })
     }
   })
 })
