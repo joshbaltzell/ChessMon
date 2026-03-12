@@ -9,6 +9,7 @@ import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR } from '../mod
 import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { loadModel } from '../ml/model-store.js'
 import { generateEmotionResponse } from '../models/personality.js'
+import { generateMatchRecap } from '../models/battle-commentary.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
 import { createRequire } from 'module'
@@ -185,6 +186,13 @@ export class TrainingService {
           mlTrainingResult.epochLosses[0],
       },
       emotion,
+      recap: generateMatchRecap(
+        gameResult.positions,
+        gameResult.result,
+        botColor,
+        bot.alignmentAttack,
+        bot.alignmentStyle,
+      ),
     }
   }
 

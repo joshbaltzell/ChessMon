@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { getAllOpenings } from '../../engine/opening-book.js'
+import { getGameGuide, getOnboardingGuide } from '../../models/game-guide.js'
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 const tacticsData = require('../../data/tactics.json') as { tactics: Array<{ key: string; name: string; description: string; category: string; minLevel: number; cost: number }> }
@@ -46,5 +47,13 @@ export async function catalogRoutes(app: FastifyInstance) {
 
   app.get('/catalog/openings', async () => {
     return getAllOpenings()
+  })
+
+  app.get('/catalog/guide', async () => {
+    return getGameGuide()
+  })
+
+  app.get('/catalog/onboarding', async () => {
+    return getOnboardingGuide()
   })
 }

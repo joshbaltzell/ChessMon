@@ -1,10 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { BotService } from '../../services/bot.service.js'
+import { DashboardService } from '../../services/dashboard.service.js'
 import { getDb } from '../../db/connection.js'
 import { createBotSchema, leaderboardQuerySchema, botIdParamSchema, parseOrThrow } from '../schemas/validation.js'
 
 export async function botRoutes(app: FastifyInstance) {
-  const botService = new BotService(getDb())
+  const db = getDb()
+  const botService = new BotService(db)
+  const dashboardService = new DashboardService(db)
 
   app.post('/bots', { onRequest: [app.authenticate] }, async (request, reply) => {
     const { playerId } = request.user
@@ -44,6 +47,17 @@ export async function botRoutes(app: FastifyInstance) {
   app.get('/bots/mine', { onRequest: [app.authenticate] }, async (request) => {
     const playerBots = botService.getByPlayerId(request.user.playerId)
     return { bots: playerBots }
+  })
+
+  app.get('/bots/:id/dashboard', { onRequest: [app.authenticate] }, async (request, reply) => {
+    const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
+    const { playerId } = request.user
+
+    const bot = botService.getById(botId)
+    if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+    if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+
+    return dashboardService.getBotDashboard(botId)
   })
 
   app.get('/bots/:id', async (request) => {
