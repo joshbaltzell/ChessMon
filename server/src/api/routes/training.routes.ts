@@ -1,0 +1,49 @@
+import type { FastifyInstance } from 'fastify'
+import { TrainingService } from '../../services/training.service.js'
+import { BotService } from '../../services/bot.service.js'
+import { getDb } from '../../db/connection.js'
+import type { StockfishPool } from '../../engine/stockfish-pool.js'
+
+export function createTrainingRoutes(pool: StockfishPool) {
+  return async function trainingRoutes(app: FastifyInstance) {
+    const db = getDb()
+    const trainingService = new TrainingService(db, pool)
+    const botService = new BotService(db)
+
+    app.post('/bots/:id/train/spar', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const botId = parseInt(id, 10)
+      const { playerId } = request.user
+
+      // Verify ownership
+      const bot = botService.getById(botId)
+      if (!bot) {
+        return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+      }
+      if (bot.playerId !== playerId) {
+        return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      }
+
+      const body = request.body as {
+        opponent: 'system' | 'player'
+        opponent_level?: number
+        opponent_bot_id?: number
+      }
+
+      try {
+        const result = await trainingService.spar(
+          botId,
+          body.opponent,
+          body.opponent_level,
+          body.opponent_bot_id,
+        )
+        return result
+      } catch (err: any) {
+        if (err.message.includes('Not enough training points')) {
+          return reply.status(400).send({ error: err.message, code: 'INSUFFICIENT_POINTS' })
+        }
+        throw err
+      }
+    })
+  }
+}

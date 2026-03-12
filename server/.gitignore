@@ -1,0 +1,5 @@
+chessmon.db
+chessmon.db-shm
+chessmon.db-wal
+node_modules/
+dist/
