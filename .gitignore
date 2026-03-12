@@ -5,3 +5,8 @@ temp/
 
 src/pgn.js
 src/pgn.d.ts
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
