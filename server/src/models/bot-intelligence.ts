@@ -1,4 +1,4 @@
-import type { PlayParameters, AlignmentAttack, AlignmentStyle } from '../types/index.js'
+import type { PlayParameters, AlignmentAttack, AlignmentStyle, OpeningBookEntry } from '../types/index.js'
 
 export interface BotRecord {
   level: number
@@ -27,7 +27,7 @@ export interface BotRecord {
  * A focused build (e.g. 20/10/10/5/5) should beat an even build (10/10/10/10/10)
  * in scenarios where the focused stat matters, creating rock-paper-scissors dynamics.
  */
-export function botToPlayParameters(bot: BotRecord): PlayParameters {
+export function botToPlayParameters(bot: BotRecord, openingBook?: OpeningBookEntry | null): PlayParameters {
   const level = bot.level
 
   // Search depth scales with level
@@ -119,7 +119,7 @@ export function botToPlayParameters(bot: BotRecord): PlayParameters {
     positionalWeight: Math.min(1.5, positionalWeight),
     tacticalWeight: Math.min(1.5, tacticalWeight),
     endgameWeight: Math.min(1.5, endgameWeight),
-    openingBook: null,
+    openingBook: openingBook ?? null,
     mlModel: bot.mlWeightsBlob ? { botId: bot.id, weightsBlob: bot.mlWeightsBlob } : null,
   }
 }

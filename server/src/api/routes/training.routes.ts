@@ -4,6 +4,8 @@ import { BotService } from '../../services/bot.service.js'
 import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
+import { botIdParamSchema, sparSchema, tacticKeySchema, parseOrThrow } from '../schemas/validation.js'
+import { rateLimitHeavy } from '../plugins/rate-limiter.js'
 
 // Limit concurrent game simulations to prevent Stockfish pool saturation
 const sparLimiter = new ConcurrencyLimiter(8)
@@ -14,10 +16,10 @@ export function createTrainingRoutes(pool: StockfishPool) {
     const trainingService = new TrainingService(db, pool)
     const botService = new BotService(db)
 
-    app.post('/bots/:id/train/spar', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+    app.post('/bots/:id/train/spar', { onRequest: [app.authenticate, rateLimitHeavy] }, async (request, reply) => {
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
+      const body = parseOrThrow(sparSchema, request.body)
 
       // Verify ownership
       const bot = botService.getById(botId)
@@ -26,12 +28,6 @@ export function createTrainingRoutes(pool: StockfishPool) {
       }
       if (bot.playerId !== playerId) {
         return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
-      }
-
-      const body = request.body as {
-        opponent: 'system' | 'player'
-        opponent_level?: number
-        opponent_bot_id?: number
       }
 
       try {
@@ -54,16 +50,13 @@ export function createTrainingRoutes(pool: StockfishPool) {
 
     // Purchase a tactic
     app.post('/bots/:id/train/purchase', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
+      const { tactic_key } = parseOrThrow(tacticKeySchema, request.body)
 
       const bot = botService.getById(botId)
       if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
       if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
-
-      const { tactic_key } = request.body as { tactic_key: string }
-      if (!tactic_key) return reply.status(400).send({ error: 'tactic_key required', code: 'MISSING_FIELD' })
 
       try {
         return await trainingService.purchaseTactic(botId, tactic_key)
@@ -80,16 +73,13 @@ export function createTrainingRoutes(pool: StockfishPool) {
 
     // Drill a tactic to increase proficiency
     app.post('/bots/:id/train/drill', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
+      const { tactic_key } = parseOrThrow(tacticKeySchema, request.body)
 
       const bot = botService.getById(botId)
       if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
       if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
-
-      const { tactic_key } = request.body as { tactic_key: string }
-      if (!tactic_key) return reply.status(400).send({ error: 'tactic_key required', code: 'MISSING_FIELD' })
 
       try {
         return await trainingService.drill(botId, tactic_key)
@@ -106,8 +96,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
 
     // Get training log
     app.get('/bots/:id/training-log', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)

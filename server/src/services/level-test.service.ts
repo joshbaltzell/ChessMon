@@ -1,5 +1,5 @@
 import { eq, desc, ne, and } from 'drizzle-orm'
-import { bots, levelTests, gameRecords, trainingLog } from '../db/schema.js'
+import { bots, botTactics, levelTests, gameRecords, trainingLog } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { StockfishPool } from '../engine/stockfish-pool.js'
 import { simulateGame } from '../engine/game-simulator.js'
@@ -11,6 +11,7 @@ import {
 import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { loadModel } from '../ml/model-store.js'
 import { generateEmotionResponse } from '../models/personality.js'
+import { getBestOpeningBook } from '../engine/opening-book.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
 import type { GameResult } from '../types/index.js'
 
@@ -68,10 +69,12 @@ export class LevelTestService {
     // Select opponents
     const opponents = this.selectOpponents(bot.id, nextLevel, config)
 
-    // Load ML model
+    // Load ML model and opening book
     const mlModel = await loadModel(this.db, botId)
+    const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
+    const openingBook = getBestOpeningBook(botTacticsOwned)
 
-    const botParams = botToPlayParameters(bot)
+    const botParams = botToPlayParameters(bot, openingBook)
     const botContext: MoveSelectorContext = {
       mlModel,
       botColor: undefined,

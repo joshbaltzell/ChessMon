@@ -9,6 +9,7 @@ import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR } from '../mod
 import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { loadModel } from '../ml/model-store.js'
 import { generateEmotionResponse } from '../models/personality.js'
+import { getBestOpeningBook } from '../engine/opening-book.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
@@ -49,7 +50,10 @@ export class TrainingService {
       throw new Error('Invalid opponent specification')
     }
 
-    const botParams = botToPlayParameters(bot)
+    // Load bot's opening book from owned tactics
+    const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
+    const openingBook = getBestOpeningBook(botTacticsOwned)
+    const botParams = botToPlayParameters(bot, openingBook)
 
     // Load ML model for the bot if available
     const mlModel = await loadModel(this.db, botId)

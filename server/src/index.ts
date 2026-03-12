@@ -36,11 +36,36 @@ async function main() {
 
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
-    app.log.error(error)
-    const statusCode = (error as Record<string, unknown>).statusCode as number || 500
+    const errObj = error as Record<string, unknown>
+    const statusCode = (errObj.statusCode as number) || 500
+    const code = (errObj.code as string) || 'SERVER_ERROR'
+
+    // Don't log 4xx as errors, only unexpected 5xx
+    if (statusCode >= 500) {
+      app.log.error(error)
+    } else {
+      app.log.warn({ statusCode, code, message: (error as Error).message, url: request.url })
+    }
+
+    // Validation errors from Zod (thrown by parseOrThrow)
+    if (code === 'VALIDATION_ERROR') {
+      return reply.status(400).send({
+        error: (error as Error).message,
+        code: 'VALIDATION_ERROR',
+      })
+    }
+
     reply.status(statusCode).send({
       error: statusCode === 500 ? 'Internal server error' : (error as Error).message,
-      code: 'SERVER_ERROR',
+      code,
+    })
+  })
+
+  // 404 handler
+  app.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      error: `Route ${request.method} ${request.url} not found`,
+      code: 'NOT_FOUND',
     })
   })
 

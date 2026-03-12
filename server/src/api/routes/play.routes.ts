@@ -3,6 +3,8 @@ import { PlayService } from '../../services/play.service.js'
 import { BotService } from '../../services/bot.service.js'
 import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
+import { botIdParamSchema, playSessionParamSchema, newGameSchema, moveSchema, parseOrThrow } from '../schemas/validation.js'
+import { rateLimitPlay } from '../plugins/rate-limiter.js'
 
 export function createPlayRoutes(pool: StockfishPool) {
   return async function playRoutes(app: FastifyInstance) {
@@ -12,28 +14,25 @@ export function createPlayRoutes(pool: StockfishPool) {
 
     // Start a new human vs bot game
     app.post('/bots/:id/play/new', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)
       if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
       if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
 
-      const { player_color } = request.body as { player_color?: 'w' | 'b' }
-      const color = player_color === 'b' ? 'b' : 'w'
+      const { player_color } = parseOrThrow(newGameSchema, request.body ?? {})
 
       try {
-        return await playService.newGame(botId, color)
+        return await playService.newGame(botId, player_color ?? 'w')
       } catch (err: any) {
         return reply.status(400).send({ error: err.message, code: 'PLAY_ERROR' })
       }
     })
 
     // Make a move in an active game
-    app.post('/bots/:id/play/:sessionId/move', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id, sessionId } = request.params as { id: string; sessionId: string }
-      const botId = parseInt(id, 10)
+    app.post('/bots/:id/play/:sessionId/move', { onRequest: [app.authenticate, rateLimitPlay] }, async (request, reply) => {
+      const { id: botId, sessionId } = parseOrThrow(playSessionParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)
@@ -45,8 +44,7 @@ export function createPlayRoutes(pool: StockfishPool) {
         return reply.status(404).send({ error: 'Session not found', code: 'SESSION_NOT_FOUND' })
       }
 
-      const { move } = request.body as { move: string }
-      if (!move) return reply.status(400).send({ error: 'move required', code: 'MISSING_FIELD' })
+      const { move } = parseOrThrow(moveSchema, request.body)
 
       try {
         return await playService.makePlayerMove(sessionId, move)
@@ -60,8 +58,7 @@ export function createPlayRoutes(pool: StockfishPool) {
 
     // Resign
     app.post('/bots/:id/play/:sessionId/resign', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id, sessionId } = request.params as { id: string; sessionId: string }
-      const botId = parseInt(id, 10)
+      const { id: botId, sessionId } = parseOrThrow(playSessionParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)

@@ -24,7 +24,16 @@ export async function simulateGame(
     const currentContext = isWhite ? options.whiteContext : options.blackContext
     const fen = chess.fen()
 
-    const { san, candidates } = await selectMove(chess, currentParams, pool, currentContext)
+    let san: string
+    let candidates: typeof positions[0]['candidateMoves']
+    try {
+      const result = await selectMove(chess, currentParams, pool, currentContext)
+      san = result.san
+      candidates = result.candidates
+    } catch {
+      // Engine failure mid-game (timeout, etc.) — end game as draw
+      break
+    }
     chess.move(san)
 
     positions.push({

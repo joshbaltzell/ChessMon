@@ -1,0 +1,243 @@
+{
+  "openings": [
+    {
+      "key": "italian_game",
+      "name": "Italian Game",
+      "category": "tactical",
+      "minLevel": 1,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "e5",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "Nf3",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq": "Nc6",
+        "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq": "Bc4",
+        "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq": "Bc5"
+      }
+    },
+    {
+      "key": "sicilian_defense",
+      "name": "Sicilian Defense",
+      "category": "aggressive",
+      "minLevel": 1,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "c5",
+        "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "Nf3",
+        "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq": "d6",
+        "rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq": "d4",
+        "rnbqkbnr/pp2pppp/3p4/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq": "cxd4"
+      }
+    },
+    {
+      "key": "french_defense",
+      "name": "French Defense",
+      "category": "positional",
+      "minLevel": 1,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "e6",
+        "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "d4",
+        "rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq": "d5",
+        "rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq": "Nc3"
+      }
+    },
+    {
+      "key": "queens_gambit",
+      "name": "Queen's Gambit",
+      "category": "positional",
+      "minLevel": 2,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "d5",
+        "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "e6",
+        "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq": "Nc3"
+      }
+    },
+    {
+      "key": "ruy_lopez",
+      "name": "Ruy Lopez",
+      "category": "positional",
+      "minLevel": 2,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "e5",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "Nf3",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq": "Nc6",
+        "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq": "Bb5",
+        "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq": "a6"
+      }
+    },
+    {
+      "key": "kings_indian",
+      "name": "King's Indian Defense",
+      "category": "aggressive",
+      "minLevel": 3,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "g6",
+        "rnbqkb1r/pppp1ppp/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq": "Nc3",
+        "rnbqkb1r/pppp1ppp/5np1/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq": "Bg7"
+      }
+    },
+    {
+      "key": "london_system",
+      "name": "London System",
+      "category": "defensive",
+      "minLevel": 2,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "d5",
+        "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "Bf4",
+        "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq": "Nf6",
+        "rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR w KQkq": "e3"
+      }
+    },
+    {
+      "key": "caro_kann",
+      "name": "Caro-Kann Defense",
+      "category": "defensive",
+      "minLevel": 3,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "c6",
+        "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "d4",
+        "rnbqkbnr/pp1ppppp/2p5/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq": "d5",
+        "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq": "Nc3"
+      }
+    },
+    {
+      "key": "pirc_defense",
+      "name": "Pirc Defense",
+      "category": "tactical",
+      "minLevel": 4,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "d6",
+        "rnbqkbnr/ppp1pppp/3p4/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "d4",
+        "rnbqkbnr/ppp1pppp/3p4/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/ppp1pppp/3p1n2/8/3PP3/8/PPP2PPP/RNBQKBNR w KQkq": "Nc3"
+      }
+    },
+    {
+      "key": "english_opening",
+      "name": "English Opening",
+      "category": "positional",
+      "minLevel": 4,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq": "e5",
+        "rnbqkbnr/pppp1ppp/8/4p3/2P5/8/PP1PPPPP/RNBQKBNR w KQkq": "Nc3",
+        "rnbqkbnr/pppp1ppp/8/4p3/2P5/2N5/PP1PPPPP/R1BQKBNR b KQkq": "Nf6"
+      }
+    },
+    {
+      "key": "grunfeld_defense",
+      "name": "Grunfeld Defense",
+      "category": "tactical",
+      "minLevel": 5,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "g6",
+        "rnbqkb1r/pppp1ppp/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq": "Nc3",
+        "rnbqkb1r/pppp1ppp/5np1/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq": "d5"
+      }
+    },
+    {
+      "key": "nimzo_indian",
+      "name": "Nimzo-Indian Defense",
+      "category": "positional",
+      "minLevel": 6,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "e6",
+        "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq": "Nc3",
+        "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq": "Bb4"
+      }
+    },
+    {
+      "key": "kings_gambit",
+      "name": "King's Gambit",
+      "category": "aggressive",
+      "minLevel": 5,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "e5",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "f4",
+        "rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq": "exf4"
+      }
+    },
+    {
+      "key": "dutch_defense",
+      "name": "Dutch Defense",
+      "category": "aggressive",
+      "minLevel": 6,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "f5",
+        "rnbqkbnr/ppppp1pp/8/5p2/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkbnr/ppppp1pp/8/5p2/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "Nf6"
+      }
+    },
+    {
+      "key": "benoni_defense",
+      "name": "Benoni Defense",
+      "category": "tactical",
+      "minLevel": 7,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "c5",
+        "rnbqkb1r/pp1ppppp/5n2/2p5/2PP4/8/PP2PPPP/RNBQKBNR w KQkq": "d5"
+      }
+    },
+    {
+      "key": "catalan_opening",
+      "name": "Catalan Opening",
+      "category": "positional",
+      "minLevel": 8,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "e6",
+        "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq": "g3"
+      }
+    },
+    {
+      "key": "slav_defense",
+      "name": "Slav Defense",
+      "category": "defensive",
+      "minLevel": 5,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq": "d5",
+        "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq": "c4",
+        "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq": "c6"
+      }
+    },
+    {
+      "key": "scandinavian_defense",
+      "name": "Scandinavian Defense",
+      "category": "tactical",
+      "minLevel": 3,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "d5",
+        "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "exd5",
+        "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq": "Qxd5"
+      }
+    },
+    {
+      "key": "alekhines_defense",
+      "name": "Alekhine's Defense",
+      "category": "aggressive",
+      "minLevel": 7,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "Nf6",
+        "rnbqkb1r/pppppppp/5n2/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "e5",
+        "rnbqkb1r/pppppppp/8/4Pn2/8/8/PPPP1PPP/RNBQKBNR b KQkq": "Nd5"
+      }
+    },
+    {
+      "key": "vienna_game",
+      "name": "Vienna Game",
+      "category": "tactical",
+      "minLevel": 4,
+      "positions": {
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq": "e5",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq": "Nc3",
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq": "Nf6"
+      }
+    }
+  ]
+}

@@ -1,19 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { AuthService } from '../../services/auth.service.js'
 import { getDb } from '../../db/connection.js'
+import { registerSchema, loginSchema, parseOrThrow } from '../schemas/validation.js'
+import { rateLimitAuth } from '../plugins/rate-limiter.js'
 
 export async function authRoutes(app: FastifyInstance) {
   const authService = new AuthService(getDb())
 
-  app.post('/auth/register', async (request, reply) => {
-    const { username, password } = request.body as { username: string; password: string }
-
-    if (!username || username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
-      return reply.status(400).send({ error: 'Username must be 3-20 alphanumeric characters or underscores', code: 'INVALID_USERNAME' })
-    }
-    if (!password || password.length < 8) {
-      return reply.status(400).send({ error: 'Password must be at least 8 characters', code: 'INVALID_PASSWORD' })
-    }
+  app.post('/auth/register', { onRequest: [rateLimitAuth] }, async (request, reply) => {
+    const { username, password } = parseOrThrow(registerSchema, request.body)
 
     try {
       const player = await authService.register(username, password)
@@ -27,12 +22,8 @@ export async function authRoutes(app: FastifyInstance) {
     }
   })
 
-  app.post('/auth/login', async (request, reply) => {
-    const { username, password } = request.body as { username: string; password: string }
-
-    if (!username || !password) {
-      return reply.status(400).send({ error: 'Username and password are required', code: 'MISSING_FIELDS' })
-    }
+  app.post('/auth/login', { onRequest: [rateLimitAuth] }, async (request, reply) => {
+    const { username, password } = parseOrThrow(loginSchema, request.body)
 
     try {
       const player = await authService.login(username, password)

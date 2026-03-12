@@ -119,6 +119,54 @@
       "category": "endgame",
       "minLevel": 9,
       "cost": 3
+    },
+    {
+      "key": "italian_game",
+      "name": "Italian Game Opening",
+      "description": "Learn the classical Italian Game with Bc4 targeting f7",
+      "category": "tactical",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "sicilian_defense",
+      "name": "Sicilian Defense Opening",
+      "description": "Master the aggressive Sicilian Defense with 1...c5",
+      "category": "aggressive",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "french_defense",
+      "name": "French Defense Opening",
+      "description": "Learn the solid French Defense with 1...e6",
+      "category": "positional",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "queens_gambit",
+      "name": "Queen's Gambit Opening",
+      "description": "Play the classic Queen's Gambit with d4 and c4",
+      "category": "positional",
+      "minLevel": 2,
+      "cost": 3
+    },
+    {
+      "key": "kings_indian",
+      "name": "King's Indian Defense Opening",
+      "description": "Learn the aggressive King's Indian with g6 and Bg7",
+      "category": "aggressive",
+      "minLevel": 3,
+      "cost": 3
+    },
+    {
+      "key": "london_system",
+      "name": "London System Opening",
+      "description": "Play the solid London System with Bf4",
+      "category": "defensive",
+      "minLevel": 2,
+      "cost": 3
     }
   ]
 }

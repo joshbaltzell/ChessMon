@@ -4,6 +4,8 @@ import { BotService } from '../../services/bot.service.js'
 import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
+import { botIdParamSchema, levelTestParamSchema, parseOrThrow } from '../schemas/validation.js'
+import { rateLimitHeavy } from '../plugins/rate-limiter.js'
 
 const levelTestLimiter = new ConcurrencyLimiter(4) // Level tests are heavier (3-5 games each)
 
@@ -14,9 +16,8 @@ export function createLevelTestRoutes(pool: StockfishPool) {
     const botService = new BotService(db)
 
     // Start a level test
-    app.post('/bots/:id/level-test', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+    app.post('/bots/:id/level-test', { onRequest: [app.authenticate, rateLimitHeavy] }, async (request, reply) => {
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)
@@ -42,8 +43,7 @@ export function createLevelTestRoutes(pool: StockfishPool) {
 
     // Get a specific level test result
     app.get('/bots/:id/level-test/:testId', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id, testId } = request.params as { id: string; testId: string }
-      const botId = parseInt(id, 10)
+      const { id: botId, testId } = parseOrThrow(levelTestParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)
@@ -54,7 +54,7 @@ export function createLevelTestRoutes(pool: StockfishPool) {
         return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
       }
 
-      const test = levelTestService.getTestById(parseInt(testId, 10))
+      const test = levelTestService.getTestById(testId)
       if (!test || test.botId !== botId) {
         return reply.status(404).send({ error: 'Test not found', code: 'TEST_NOT_FOUND' })
       }
@@ -69,8 +69,7 @@ export function createLevelTestRoutes(pool: StockfishPool) {
 
     // Get all level tests for a bot
     app.get('/bots/:id/level-tests', { onRequest: [app.authenticate] }, async (request, reply) => {
-      const { id } = request.params as { id: string }
-      const botId = parseInt(id, 10)
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
 
       const bot = botService.getById(botId)

@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { BotService } from '../../services/bot.service.js'
 import { getDb } from '../../db/connection.js'
+import { createBotSchema, leaderboardQuerySchema, botIdParamSchema, parseOrThrow } from '../schemas/validation.js'
 
 export async function botRoutes(app: FastifyInstance) {
   const botService = new BotService(getDb())
 
   app.post('/bots', { onRequest: [app.authenticate] }, async (request, reply) => {
     const { playerId } = request.user
-    const body = request.body as any
+    const body = parseOrThrow(createBotSchema, request.body)
 
     const input = {
       playerId,
@@ -46,8 +47,8 @@ export async function botRoutes(app: FastifyInstance) {
   })
 
   app.get('/bots/:id', async (request) => {
-    const { id } = request.params as { id: string }
-    const bot = botService.getById(parseInt(id, 10))
+    const { id } = parseOrThrow(botIdParamSchema, request.params)
+    const bot = botService.getById(id)
     if (!bot) {
       throw { statusCode: 404, message: 'Bot not found' }
     }
@@ -56,9 +57,7 @@ export async function botRoutes(app: FastifyInstance) {
   })
 
   app.get('/bots/leaderboard', async (request) => {
-    const query = request.query as { limit?: string; offset?: string }
-    const limit = Math.min(parseInt(query.limit || '20', 10), 100)
-    const offset = parseInt(query.offset || '0', 10)
+    const { limit, offset } = parseOrThrow(leaderboardQuerySchema, request.query)
     const bots = botService.getLeaderboard(limit, offset)
     return { bots }
   })
