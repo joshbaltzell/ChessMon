@@ -1,0 +1,66 @@
+/* ============================================================
+   ChessMon — Layout (Two-Column with Bot Panel)
+   ============================================================ */
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.top-bar .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.top-bar .logo h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.top-bar .status-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+/* Main container */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.left-col, .right-col {
+  /* no special styles in single-col mode */
+}
+
+/* Two-Column Layout when board is active (desktop/tablet) */
+@media (min-width: 768px) {
+  .container.board-active {
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 16px;
+    align-items: start;
+  }
+  .container.board-active > h1,
+  .container.board-active > .subtitle { grid-column: 1 / -1; }
+  .container.board-active .left-col { grid-column: 1; }
+  .container.board-active .right-col {
+    grid-column: 2;
+    position: sticky;
+    top: 16px;
+    max-width: 480px;
+  }
+}

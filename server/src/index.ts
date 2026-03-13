@@ -1,10 +1,17 @@
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import fastifyStatic from '@fastify/static'
 import { config } from './config.js'
 import { initializeDb } from './db/connection.js'
 import { authPlugin } from './api/plugins/auth-plugin.js'
 import { registerRoutes } from './api/index.js'
 import { StockfishPool } from './engine/stockfish-pool.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 async function main() {
   const app = Fastify({ logger: true })
@@ -12,6 +19,20 @@ async function main() {
   // Register plugins
   await app.register(cors, { origin: true })
   await app.register(authPlugin)
+
+  // Serve chess.js ESM build for browser use (from root dist, not public/)
+  // Must register before @fastify/static so this explicit route takes priority
+  const chessJsPath = join(__dirname, '..', '..', 'dist', 'esm', 'chess.js')
+  app.get('/js/chess.js', async (_request, reply) => {
+    const js = readFileSync(chessJsPath, 'utf-8')
+    reply.type('application/javascript').send(js)
+  })
+
+  // Serve static files from public/ directory (CSS, JS, HTML, etc.)
+  await app.register(fastifyStatic, {
+    root: join(__dirname, 'public'),
+    prefix: '/',
+  })
 
   // Initialize database
   initializeDb()

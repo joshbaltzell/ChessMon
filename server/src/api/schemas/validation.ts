@@ -82,6 +82,14 @@ export const levelTestParamSchema = z.object({
   testId: z.coerce.number().int().positive('Invalid test ID'),
 })
 
+// --- Cards ---
+export const playCardSchema = z.object({
+  card_id: z.string().min(1, 'card_id is required'),
+  // Optional context for cards that need it (e.g. spar needs opponent_level, drill needs tactic_key)
+  opponent_level: z.number().int().min(1).max(20).optional(),
+  tactic_key: z.string().optional(),
+})
+
 // --- Helper ---
 export function parseOrThrow<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data)

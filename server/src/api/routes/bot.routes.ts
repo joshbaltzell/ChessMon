@@ -3,6 +3,7 @@ import { BotService } from '../../services/bot.service.js'
 import { DashboardService } from '../../services/dashboard.service.js'
 import { getDb } from '../../db/connection.js'
 import { createBotSchema, leaderboardQuerySchema, botIdParamSchema, parseOrThrow } from '../schemas/validation.js'
+import { loadModel } from '../../ml/model-store.js'
 
 export async function botRoutes(app: FastifyInstance) {
   const db = getDb()
@@ -68,6 +69,42 @@ export async function botRoutes(app: FastifyInstance) {
     }
     const tactics = botService.getTactics(bot.id)
     return { bot: { ...bot, tactics, mlWeightsBlob: undefined } }
+  })
+
+  // Bot Brain: probe the ML model to show what the bot has learned
+  app.get('/bots/:id/brain', { onRequest: [app.authenticate] }, async (request, reply) => {
+    const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
+    const { playerId } = request.user
+
+    const bot = botService.getById(botId)
+    if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+    if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+
+    const model = await loadModel(db, botId)
+    if (!model) {
+      return { trained: false, message: 'Bot has not trained yet — spar to start learning!' }
+    }
+
+    const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
+    const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
+
+    const profile = model.probePreferences(
+      {
+        aggression: bot.aggression,
+        positional: bot.positional,
+        tactical: bot.tactical,
+        endgame: bot.endgame,
+        creativity: bot.creativity,
+      },
+      ALIGNMENT_ATTACK_MAP[bot.alignmentAttack] ?? 1,
+      ALIGNMENT_STYLE_MAP[bot.alignmentStyle] ?? 1,
+    )
+
+    return {
+      trained: true,
+      gamesPlayed: bot.gamesPlayed,
+      profile,
+    }
   })
 
   app.get('/bots/leaderboard', async (request) => {

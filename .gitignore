@@ -10,3 +10,5 @@ src/pgn.d.ts
 *.db
 *.db-shm
 *.db-wal
+.superpowers/
+.superpowers/

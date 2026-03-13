@@ -99,6 +99,29 @@ export function initializeDb(dbPath?: string) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS card_hands (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bot_id INTEGER NOT NULL REFERENCES bots(id),
+      round_number INTEGER NOT NULL DEFAULT 1,
+      energy INTEGER NOT NULL,
+      max_energy INTEGER NOT NULL,
+      hand_json TEXT NOT NULL DEFAULT '[]',
+      cards_played_this_round INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS ladder_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bot_id INTEGER NOT NULL REFERENCES bots(id),
+      target_level INTEGER NOT NULL,
+      opponent_index INTEGER NOT NULL,
+      opponent_name TEXT NOT NULL,
+      opponent_level INTEGER NOT NULL,
+      defeated INTEGER NOT NULL DEFAULT 0,
+      game_record_id INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     CREATE TABLE IF NOT EXISTS play_sessions (
       id TEXT PRIMARY KEY,
       bot_id INTEGER NOT NULL REFERENCES bots(id),

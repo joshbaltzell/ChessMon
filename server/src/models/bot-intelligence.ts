@@ -33,14 +33,29 @@ export function computeMlBlendWeight(gamesPlayed: number): number {
  *
  * BALANCE PHILOSOPHY:
  * Every attribute should be a viable "main stat" that can win games.
- * - Aggression (20): Plays forcing moves, capitalizes on initiative
- * - Positional (20): Trusts engine best moves, plays solidly
- * - Tactical (20): Finds combinations, plays engine-accurate when it matters
- * - Endgame (20): Dominates endgames where precision wins
- * - Creativity (20): Unpredictable, catches opponents off-guard
+ * No single stat should dominate — each has a unique win condition.
  *
- * A focused build (e.g. 20/10/10/5/5) should beat an even build (10/10/10/10/10)
- * in scenarios where the focused stat matters, creating rock-paper-scissors dynamics.
+ * - Aggression (20): Plays forcing moves, immune to blunders when forcing moves exist.
+ *   WIN CONDITION: Initiative-based wins through checks and captures.
+ *
+ * - Positional (20): Trusts engine best moves, deeper search.
+ *   WIN CONDITION: Solid, mistake-free play that grinds out advantages.
+ *
+ * - Tactical (20): Finds combinations via eval swings, deeper search.
+ *   WIN CONDITION: Winning material through tactical shots and combinations.
+ *
+ * - Endgame (20): Dominates endgames with precision + extra depth.
+ *   WIN CONDITION: Converting small advantages in simplified positions.
+ *
+ * - Creativity (20): Unpredictable moves with a "surprise bonus," faster ML learning.
+ *   WIN CONDITION: Unique play style that improves faster via ML training.
+ *
+ * SECONDARY BONUSES (each stat gets ONE unique bonus at ≥15):
+ * - Aggression ≥15: Blunder immunity when a forcing move is available
+ * - Positional ≥15: +1 search depth (sees deeper)
+ * - Tactical ≥15: +1 search depth (finds combos) + blunder rate ×0.7
+ * - Endgame ≥15: +1 search depth in endgame positions
+ * - Creativity ≥15: ML learning ×1.3 + surprise bonus in move scoring
  */
 export function botToPlayParameters(bot: BotRecord, openingBook?: OpeningBookEntry | null): PlayParameters {
   const level = bot.level
@@ -49,62 +64,54 @@ export function botToPlayParameters(bot: BotRecord, openingBook?: OpeningBookEnt
   const depthByLevel = [0, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 9, 10, 10, 11, 12, 13, 14, 16, 18, 20]
   let searchDepth = depthByLevel[Math.min(level, 20)] || 3
 
-  // Blunder rate decreases with level AND with focused attributes
+  // Blunder rate decreases with level
   let blunderRate = Math.max(0, 0.15 - level * 0.01)
 
-  // Focused positional play reduces blunders (trusts engine more)
+  // BALANCE: Positional focus reduces blunders moderately (was ×0.5, now ×0.7)
   if (bot.positional >= 15) {
-    blunderRate *= 0.5
+    blunderRate *= 0.7
   }
 
-  // Focused tactical play reduces blunders in critical moments
+  // BALANCE: Tactical focus reduces blunders moderately (was ×0.6, now ×0.7)
   if (bot.tactical >= 15) {
-    blunderRate *= 0.6
+    blunderRate *= 0.7
   }
-
-  // Focused endgame grants a small depth bonus in endgame positions
-  // (handled in move-selector, but reflected here as a signal)
 
   // Base weights from attributes (0-20 -> 0.0-1.0)
-  // Each weight directly controls how much that scoring dimension matters
   let aggressionWeight = bot.aggression / 20
   let positionalWeight = bot.positional / 20
   let tacticalWeight = bot.tactical / 20
   let endgameWeight = bot.endgame / 20
 
-  // BALANCE: Give focused attributes extra power (diminishing returns are bad for balance)
-  // A stat at 20 gets 1.0 base + 0.3 focus bonus = 1.3 effective weight
-  // A stat at 10 gets 0.5 base + 0.0 focus bonus = 0.5 effective weight
+  // BALANCE: Give focused attributes extra power
   const focusBonus = (stat: number) => stat >= 15 ? 0.3 : stat >= 12 ? 0.15 : 0
   aggressionWeight += focusBonus(bot.aggression)
   positionalWeight += focusBonus(bot.positional)
   tacticalWeight += focusBonus(bot.tactical)
   endgameWeight += focusBonus(bot.endgame)
 
-  // BALANCE: Positional focus also grants slightly deeper search
-  // (trusting engine more = playing better objectively)
+  // BALANCE: Positional focus grants deeper search (trusts engine more)
   if (bot.positional >= 15) {
     searchDepth = Math.min(searchDepth + 1, 22)
   }
 
-  // BALANCE: Tactical focus grants deeper search for finding combinations
-  if (bot.tactical >= 18) {
+  // BALANCE: Tactical focus grants deeper search (finds combinations)
+  // Lowered threshold from 18 to 15 to match positional
+  if (bot.tactical >= 15) {
     searchDepth = Math.min(searchDepth + 1, 22)
   }
 
   // Temperature from creativity
   // Low creativity (0): temperature 0.2 = almost always picks best-scored
   // High creativity (20): temperature 1.7 = frequently picks surprising moves
-  // The ADVANTAGE of high creativity: opponents can't prepare for you,
-  // and occasionally the "wrong" move is actually brilliant
   let temperature = 0.2 + (bot.creativity / 20) * 1.5 - level * 0.015
   temperature = Math.max(0.1, Math.min(2.0, temperature))
 
-  // BALANCE: High creativity reduces the opponent's benefit from pattern recognition
-  // This is modeled by making the bot's OWN ML model train faster (more diverse data)
-  // Handled in training pipeline
+  // BALANCE: High creativity improves ML training speed (more diverse data)
+  // Also provides "surprise bonus" in move scoring (handled in move-selector)
+  const mlLearningMultiplier = 1.0 + (bot.creativity >= 15 ? 0.3 : bot.creativity >= 10 ? 0.15 : 0)
 
-  // Alignment modifiers (smaller than Phase 1 to not overshadow attributes)
+  // Alignment modifiers (smaller than attributes to not overshadow them)
   const attack = bot.alignmentAttack as AlignmentAttack
   const style = bot.alignmentStyle as AlignmentStyle
 
@@ -112,7 +119,7 @@ export function botToPlayParameters(bot: BotRecord, openingBook?: OpeningBookEnt
     aggressionWeight += 0.15
   } else if (attack === 'defensive') {
     endgameWeight += 0.15  // Defensive players excel at grinding endgames
-    blunderRate *= 0.8     // More careful play
+    blunderRate *= 0.85    // Slightly more careful play (was ×0.8)
   }
   // 'balanced' = no modifier, a valid choice for flexibility
 
@@ -137,6 +144,11 @@ export function botToPlayParameters(bot: BotRecord, openingBook?: OpeningBookEnt
     mlBlendWeight: computeMlBlendWeight(bot.gamesPlayed),
     openingBook: openingBook ?? null,
     mlModel: bot.mlWeightsBlob ? { botId: bot.id, weightsBlob: bot.mlWeightsBlob } : null,
+    // Balance additions
+    aggressionFocused: bot.aggression >= 15,
+    endgameFocused: bot.endgame >= 15,
+    creativityFocused: bot.creativity >= 15,
+    mlLearningMultiplier,
   }
 }
 
@@ -157,5 +169,9 @@ export function systemBotPlayParameters(level: number): PlayParameters {
     mlBlendWeight: 0,
     openingBook: null,
     mlModel: null,
+    aggressionFocused: false,
+    endgameFocused: false,
+    creativityFocused: false,
+    mlLearningMultiplier: 1.0,
   }
 }

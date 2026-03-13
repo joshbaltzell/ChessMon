@@ -74,7 +74,7 @@ describe('E2E Integration: Full Player Journey', () => {
 
     // 6. Bot params should reflect attributes
     const params = botToPlayParameters(retrieved!)
-    expect(params.searchDepth).toBe(3) // level 1
+    expect(params.searchDepth).toBe(4) // level 1 base 3 + tactical focus bonus
     expect(params.aggressionWeight).toBeGreaterThan(0.7) // 15/20 + focus bonus + alignment
     expect(params.temperature).toBeGreaterThan(0.3) // creativity 10 + chaotic nope, sacrificial
 

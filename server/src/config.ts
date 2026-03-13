@@ -17,4 +17,5 @@ export const config = {
   // Concurrency limits for heavy operations
   maxConcurrentSpars: parseInt(process.env.MAX_CONCURRENT_SPARS || '8', 10),
   maxConcurrentLevelTests: parseInt(process.env.MAX_CONCURRENT_LEVEL_TESTS || '4', 10),
+  devMode: process.env.DEV_MODE === '1' || process.env.NODE_ENV !== 'production',
 }

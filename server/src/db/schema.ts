@@ -79,6 +79,29 @@ export const levelTests = sqliteTable('level_tests', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const cardHands = sqliteTable('card_hands', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  botId: integer('bot_id').notNull().references(() => bots.id),
+  roundNumber: integer('round_number').notNull().default(1),
+  energy: integer('energy').notNull(),
+  maxEnergy: integer('max_energy').notNull(),
+  handJson: text('hand_json').notNull().default('[]'), // JSON array of card objects
+  cardsPlayedThisRound: integer('cards_played_this_round').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
+export const ladderProgress = sqliteTable('ladder_progress', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  botId: integer('bot_id').notNull().references(() => bots.id),
+  targetLevel: integer('target_level').notNull(),
+  opponentIndex: integer('opponent_index').notNull(), // 0, 1, or 2
+  opponentName: text('opponent_name').notNull(),
+  opponentLevel: integer('opponent_level').notNull(),
+  defeated: integer('defeated').notNull().default(0), // 0 or 1
+  gameRecordId: integer('game_record_id'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export const playSessions = sqliteTable('play_sessions', {
   id: text('id').primaryKey(), // UUID
   botId: integer('bot_id').notNull().references(() => bots.id),

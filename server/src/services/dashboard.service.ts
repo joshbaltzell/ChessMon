@@ -7,6 +7,8 @@ import { LEVEL_CONFIGS, XP_PER_SPAR } from '../models/progression.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
 import { loadModel } from '../ml/model-store.js'
 import { probeStyle, type StyleProfile } from '../ml/style-probe.js'
+import { CardService } from './card.service.js'
+import { LadderService } from './ladder.service.js'
 
 const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
 const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
@@ -187,6 +189,26 @@ export class DashboardService {
         testGames: nextLevelConfig.testGames,
         winsRequired: nextLevelConfig.winsRequired,
       } : { message: 'Maximum level reached!' },
+      hand: this.getHandState(botId),
+      ladder: this.getLadderState(botId),
+    }
+  }
+
+  private getLadderState(botId: number) {
+    try {
+      const ladderService = new LadderService(this.db)
+      return ladderService.getLadderState(botId)
+    } catch {
+      return null
+    }
+  }
+
+  private getHandState(botId: number) {
+    try {
+      const cardService = new CardService(this.db)
+      return cardService.getHandState(botId)
+    } catch {
+      return null
     }
   }
 }

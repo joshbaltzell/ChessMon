@@ -1,0 +1,294 @@
+/* ============================================================
+   ChessMon — Bot Terrarium
+   Animated bot enclosure with aura, breathing, mood
+   ============================================================ */
+
+/* Terrarium container in left panel */
+.terrarium {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 80%, #1a1a2e 0%, var(--bg) 70%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 12px 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  min-height: 180px;
+}
+
+/* Aura layers — glow behind the bot, evolves with level */
+.terrarium-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.terrarium-aura.aura-faint {
+  opacity: 0.15;
+  background: radial-gradient(circle, var(--aura-color, var(--neon-blue)) 0%, transparent 70%);
+}
+
+.terrarium-aura.aura-glow {
+  opacity: 0.25;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, var(--aura-color, var(--neon-blue)) 0%, transparent 70%);
+  animation: auraPulse 3s ease-in-out infinite;
+}
+
+.terrarium-aura.aura-pulsing {
+  opacity: 0.35;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, var(--aura-color, var(--neon-blue)) 0%, transparent 60%);
+  animation: auraPulse 2s ease-in-out infinite;
+}
+
+.terrarium-aura.aura-radiating {
+  opacity: 0.45;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, var(--aura-color, var(--neon-blue)) 0%, transparent 55%);
+  animation: auraPulse 1.5s ease-in-out infinite, auraRotate 8s linear infinite;
+}
+
+@keyframes auraPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: var(--aura-base-opacity, 0.25); }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: calc(var(--aura-base-opacity, 0.25) + 0.1); }
+}
+
+@keyframes auraRotate {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+
+/* Floor glow */
+.terrarium-floor {
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 20px;
+  background: radial-gradient(ellipse at 50% 100%, var(--aura-color, var(--neon-blue)) 0%, transparent 70%);
+  opacity: 0.15;
+  animation: floorPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes floorPulse {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.2; }
+}
+
+/* Bot art area — ASCII or canvas */
+.terrarium-art {
+  position: relative;
+  text-align: center;
+  z-index: 2;
+  animation: botBreathe 3s ease-in-out infinite;
+}
+
+.terrarium-art pre {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: var(--text);
+  text-shadow: 0 0 6px var(--aura-color, var(--neon-blue));
+  display: inline-block;
+}
+
+.terrarium-art canvas {
+  image-rendering: pixelated;
+  display: block;
+  margin: 0 auto;
+}
+
+@keyframes botBreathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Bot name */
+.terrarium-name {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--accent);
+  letter-spacing: 1px;
+  margin-top: 6px;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent);
+  z-index: 2;
+  position: relative;
+}
+
+/* Level badge */
+.terrarium-level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  z-index: 2;
+  position: relative;
+}
+
+.level-badge {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 10px var(--neon-yellow);
+}
+
+.level-elo {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+/* XP bar inside terrarium */
+.terrarium-xp {
+  margin-top: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.terrarium-xp-bar {
+  height: 4px;
+  background: var(--bg);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.terrarium-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 6px var(--neon-green);
+}
+
+.terrarium-xp-text {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* Mood bubble */
+.terrarium-mood {
+  text-align: center;
+  margin-top: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.mood-face {
+  font-size: 1.3rem;
+  margin-bottom: 2px;
+}
+
+.mood-bubble {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  display: inline-block;
+  max-width: 240px;
+  position: relative;
+  animation: moodFadeIn 0.4s ease-out;
+}
+
+.mood-bubble::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid var(--border);
+}
+
+.mood-bubble.sparkle {
+  border-color: var(--neon-yellow);
+  color: var(--neon-yellow);
+}
+
+@keyframes moodFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Attribute bars inside terrarium */
+.terrarium-attrs {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 3px 6px;
+  margin-top: 8px;
+  font-size: 0.6rem;
+  position: relative;
+  z-index: 2;
+}
+
+.attr-label {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.5rem;
+}
+
+.attr-bar {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+  align-self: center;
+  border: 1px solid var(--border);
+}
+
+.attr-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.attr-bar-fill.attr-aggression { background: var(--neon-pink); box-shadow: 0 0 4px var(--neon-pink); }
+.attr-bar-fill.attr-positional { background: var(--neon-blue); box-shadow: 0 0 4px var(--neon-blue); }
+.attr-bar-fill.attr-tactical   { background: var(--neon-yellow); box-shadow: 0 0 4px var(--neon-yellow); }
+.attr-bar-fill.attr-endgame    { background: var(--neon-purple); box-shadow: 0 0 4px var(--neon-purple); }
+.attr-bar-fill.attr-creativity { background: var(--neon-green); box-shadow: 0 0 4px var(--neon-green); }
+
+.attr-value {
+  color: var(--text-dim);
+  font-size: 0.55rem;
+  text-align: right;
+  min-width: 16px;
+}
+
+/* Blink animation (random interval via JS) */
+.terrarium-art.blink pre {
+  opacity: 0.3;
+}
+
+/* Record display */
+.terrarium-record {
+  text-align: center;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+  z-index: 2;
+  position: relative;
+}
+
+.terrarium-record .win-count { color: var(--neon-green); }
+.terrarium-record .loss-count { color: var(--neon-pink); }
+.terrarium-record .draw-count { color: var(--text-dim); }

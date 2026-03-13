@@ -16,6 +16,11 @@ export interface PlayParameters {
   mlBlendWeight: number
   openingBook: OpeningBookEntry | null
   mlModel: MlModelHandle | null
+  // Balance additions
+  aggressionFocused: boolean    // ≥15: immune to blunders on forcing moves
+  endgameFocused: boolean       // ≥15: +1 depth in endgame positions
+  creativityFocused: boolean    // ≥15: "surprise bonus" for non-top-engine moves
+  mlLearningMultiplier: number  // creativity bonus: 1.0 default, up to 1.5
 }
 
 export interface OpeningBookEntry {
@@ -54,3 +59,38 @@ export interface SimulatedGameResult {
 export const ATTRIBUTE_TOTAL = 50
 export const ATTRIBUTE_MIN = 0
 export const ATTRIBUTE_MAX = 20
+
+// --- Card System ---
+export type CardType = 'combat' | 'training' | 'knowledge' | 'insight' | 'utility'
+
+export interface CardDefinition {
+  key: string
+  name: string
+  energy: number
+  count: number
+  type: CardType
+  color: string
+  icon: string
+  description: string
+  flavor: string
+}
+
+export interface HandCard {
+  id: string        // unique instance id (e.g. "spar_3")
+  key: string       // card definition key
+  name: string
+  energy: number
+  type: CardType
+  color: string
+  icon: string
+  description: string
+  flavor: string
+}
+
+export interface HandState {
+  cards: HandCard[]
+  energy: number
+  maxEnergy: number
+  roundNumber: number
+  cardsPlayed: number
+}

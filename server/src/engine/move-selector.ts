@@ -40,12 +40,38 @@ export async function selectMove(
   }
 
   // Step 2: Blunder check
+  // BALANCE: Aggression-focused bots skip blunders when forcing moves exist
   if (params.blunderRate > 0 && Math.random() < params.blunderRate) {
-    return { san: legalMoves[Math.floor(Math.random() * legalMoves.length)], candidates: [] }
+    if (params.aggressionFocused) {
+      // Check if any forcing move (capture or check) exists — if so, skip the blunder
+      const hasForcingMove = legalMoves.some(m => {
+        try {
+          const move = chess.move(m)
+          const isForcing = move.captured !== undefined || move.san.includes('+') || move.san.includes('#')
+          chess.undo()
+          return isForcing
+        } catch { return false }
+      })
+      if (hasForcingMove) {
+        // Skip blunder — aggression focus saves us when we have initiative
+      } else {
+        return { san: legalMoves[Math.floor(Math.random() * legalMoves.length)], candidates: [] }
+      }
+    } else {
+      return { san: legalMoves[Math.floor(Math.random() * legalMoves.length)], candidates: [] }
+    }
   }
 
   // Step 3: Get Stockfish candidates
-  const candidates = await pool.analyze(fen, params.searchDepth, params.multiPv)
+  // BALANCE: Endgame-focused bots get +1 depth in endgame positions
+  const totalMaterial = estimateMaterialFromBoard(chess.board())
+  const isEndgame = totalMaterial <= 24
+  let effectiveDepth = params.searchDepth
+  if (isEndgame && params.endgameFocused) {
+    effectiveDepth = Math.min(effectiveDepth + 1, 22)
+  }
+
+  const candidates = await pool.analyze(fen, effectiveDepth, params.multiPv)
 
   if (candidates.length === 0) {
     return { san: legalMoves[Math.floor(Math.random() * legalMoves.length)], candidates: [] }
@@ -68,9 +94,6 @@ export async function selectMove(
   }
 
   // Step 4: Attribute-based scoring
-  // Compute material once, reuse for all candidates
-  const totalMaterial = estimateMaterialFromBoard(chess.board())
-  const isEndgame = totalMaterial <= 24
   const maxCp = Math.max(...candidatesWithSan.map(c => Math.abs(c.centipawns)), 1)
   const topCp = candidatesWithSan[0]?.centipawns || 0
 
@@ -82,6 +105,7 @@ export async function selectMove(
     const isPromotion = c.moveObj.promotion !== undefined
     const isCastling = c.san === 'O-O' || c.san === 'O-O-O'
 
+    // AGGRESSION: Rewards forcing moves (captures, checks, promotions)
     const aggressionBonus = params.aggressionWeight * (
       0.25 * (isCapture ? 1 : 0) +
       0.35 * (isCheck ? 1 : 0) +
@@ -90,27 +114,44 @@ export async function selectMove(
       0.15 * (isCapture && c.centipawns > topCp - 50 ? 1 : 0)
     )
 
+    // POSITIONAL: Trusts engine evaluation, rewards quiet strong moves
     const positionalBonus = params.positionalWeight * (
       0.6 * baseScore +
       0.2 * (isCastling ? 1 : 0) +
       0.2 * (!isCapture && !isCheck && baseScore > 0.6 ? 1 : 0)
     )
 
+    // TACTICAL: Rewards moves that create BIG eval swings (finding combos)
+    // BALANCE FIX: Now rewards HIGH eval swings (tactical shots), not low ones
     const evalSwing = idx > 0
       ? Math.abs(c.centipawns - topCp) / maxCp
       : 0
     const tacticalBonus = params.tacticalWeight * (
-      0.3 * (isCapture ? 1 : 0) +
-      0.3 * (isCheck ? 1 : 0) +
-      0.2 * (1 - evalSwing) +
-      0.2 * (isPromotion ? 1 : 0)
+      0.30 * (isCapture ? 1 : 0) +
+      0.30 * (isCheck ? 1 : 0) +
+      0.20 * (idx === 0 ? 1 : Math.max(0, 1 - evalSwing * 0.5)) + // top move or close to it
+      0.20 * (isPromotion ? 1 : 0)
     )
 
+    // ENDGAME: Amplifies engine accuracy in endgame, still useful in midgame
+    // BALANCE FIX: Raised off-phase multiplier from 0.2 to 0.35
     const endgameBonus = isEndgame
       ? params.endgameWeight * baseScore * 0.8
-      : params.endgameWeight * baseScore * 0.2
+      : params.endgameWeight * baseScore * 0.35
 
-    return baseScore + aggressionBonus + positionalBonus + tacticalBonus + endgameBonus
+    // CREATIVITY: "Surprise bonus" for non-obvious moves that aren't terrible
+    // BALANCE FIX: Gives creative bots a reward for picks that aren't the engine's top choice
+    // but are still reasonable (within 100cp of best). This makes high-temp picks more strategic.
+    let creativityBonus = 0
+    if (params.creativityFocused && idx > 0) {
+      const cpDiff = Math.abs(c.centipawns - topCp)
+      if (cpDiff < 100) {
+        // Reward non-obvious moves proportional to how close they are to best
+        creativityBonus = 0.25 * (1 - cpDiff / 100)
+      }
+    }
+
+    return baseScore + aggressionBonus + positionalBonus + tacticalBonus + endgameBonus + creativityBonus
   })
 
   // Step 5: ML preference adjustment — uses batch extraction (single Chess + board() call)

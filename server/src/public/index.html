@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ChessMon — Bot Training Game</title>
+
+<!-- CSS -->
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/log.css">
+<link rel="stylesheet" href="/css/terrarium.css">
+<link rel="stylesheet" href="/css/cards.css">
+<link rel="stylesheet" href="/css/hand.css">
+<link rel="stylesheet" href="/css/splash.css">
+<link rel="stylesheet" href="/css/ladder.css">
+</head>
+<body>
+<div class="container" id="mainContainer">
+  <h1>&#9822; ChessMon</h1>
+  <p class="subtitle">Train your chess bot. Teach it openings. Watch it grow.</p>
+
+  <div class="left-col">
+    <!-- Server status -->
+    <div class="panel" id="statusPanel">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Checking server...</span>
+    </div>
+
+    <!-- Auth panel -->
+    <div class="panel" id="authPanel">
+      <h2>Login or Register</h2>
+      <div class="row">
+        <div><label>Username</label><input type="text" id="username"></div>
+        <div><label>Password</label><input type="password" id="password"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button onclick="doAuth('login')">Login</button>
+        <button class="secondary" onclick="doAuth('register')">Register</button>
+      </div>
+      <div id="authErr" style="color:var(--red);font-size:0.8rem;margin-top:6px"></div>
+    </div>
+
+    <!-- Create Bot panel -->
+    <div class="panel hidden" id="createBotPanel">
+      <h2>Create Your Bot</h2>
+      <label>Bot Name</label>
+      <input type="text" id="botName" placeholder="e.g. StormKnight">
+      <label>Alignment — Attack</label>
+      <select id="atkAlign">
+        <option value="aggressive">Aggressive — captures, checks, king attacks</option>
+        <option value="balanced" selected>Balanced — adapts to position</option>
+        <option value="defensive">Defensive — fortress, endgame grind</option>
+      </select>
+      <label>Alignment — Style</label>
+      <select id="styleAlign">
+        <option value="chaotic">Chaotic — unpredictable, high creativity</option>
+        <option value="positional" selected>Positional — trusts engine, solid play</option>
+        <option value="sacrificial">Sacrificial — give material for attack</option>
+      </select>
+      <h2>Attributes <span class="pts-left" id="ptsLeft">(50 pts left)</span></h2>
+      <div id="attrSliders"></div>
+      <button id="createBotBtn" onclick="createBot()">Create Bot</button>
+      <div id="createErr" style="color:var(--red);font-size:0.8rem;margin-top:6px"></div>
+    </div>
+
+    <!-- Bot select -->
+    <div class="panel hidden" id="botSelectPanel">
+      <h2>Your Bots</h2>
+      <div id="botList"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="panel hidden" id="dashPanel">
+      <div id="dashContent"></div>
+      <div class="actions" id="dashActions"></div>
+    </div>
+
+    <!-- Tactic Shop panel -->
+    <div class="panel hidden" id="tacticShopPanel">
+      <h2>Tactic Shop <span style="font-size:0.8rem;color:var(--text-dim)">(3 pts each)</span></h2>
+      <div id="tacticShopList"></div>
+      <button class="secondary" onclick="closeTacticShop()" style="margin-top:10px">Close Shop</button>
+    </div>
+
+    <!-- Spar opponent picker -->
+    <div class="panel hidden" id="sparPickPanel">
+      <h2>Choose Sparring Opponent</h2>
+      <div id="sparOpponentList" style="margin:8px 0"></div>
+      <button class="secondary" onclick="document.getElementById('sparPickPanel').classList.add('hidden')">Cancel</button>
+    </div>
+
+    <!-- Color picker -->
+    <div class="panel hidden" id="colorPickPanel">
+      <h2>Choose Your Color</h2>
+      <div class="actions">
+        <button onclick="beginPlay('w')">&#9812; Play as White</button>
+        <button class="secondary" onclick="beginPlay('b')">&#9818; Play as Black</button>
+        <button class="secondary" onclick="document.getElementById('colorPickPanel').classList.add('hidden')">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Activity log -->
+    <div class="panel hidden" id="logPanel">
+      <h2>Activity Log</h2>
+      <div class="log" id="actLog"></div>
+    </div>
+
+    <!-- Bot Brain -->
+    <div class="panel hidden" id="brainPanel">
+      <h2>Bot Brain</h2>
+      <div id="brainContent" style="font-size:0.85rem"></div>
+      <button class="secondary" onclick="document.getElementById('brainPanel').classList.add('hidden')" style="margin-top:8px">Close</button>
+    </div>
+
+    <!-- Dev Mode panel -->
+    <div class="panel hidden" id="devPanel">
+      <h2 style="color:var(--neon-yellow)">Dev Tools</h2>
+      <div class="row">
+        <div>
+          <label>Opponent Level</label>
+          <input type="number" id="devOpponentLvl" min="1" max="20" value="1">
+        </div>
+        <div>
+          <label>Number of Spars</label>
+          <input type="number" id="devSparCount" min="1" max="5000" value="100">
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <button style="background:var(--neon-yellow);color:#000" onclick="devMassSpar()">Run Mass Spar</button>
+        <button class="secondary" onclick="devStopMassSpar()">Stop</button>
+      </div>
+      <div id="devProgress" style="font-size:0.8rem;color:var(--text-dim);margin:8px 0"></div>
+      <div class="log" id="devLog" style="max-height:400px;font-size:0.75rem"></div>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <!-- Card Hand area -->
+    <div class="panel hidden" id="handPanel">
+      <div class="hand-header">
+        <div class="energy-display" id="energyDisplay"></div>
+        <div class="round-info" id="roundInfo"></div>
+        <button class="secondary hand-draw-btn" id="drawHandBtn" onclick="drawNewHand()">New Round</button>
+      </div>
+      <div class="hand-play-area" id="handPlayArea"></div>
+      <div class="hand-container" id="handContainer"></div>
+    </div>
+
+    <!-- Play panel (interactive board) -->
+    <div class="panel hidden" id="playPanel">
+      <h2>Play vs Your Bot</h2>
+      <div class="chess-board-container" id="playBoardContainer">
+        <div class="board-wrapper">
+          <div class="rank-labels" id="playRankLabels"></div>
+          <div class="chess-board" id="playBoard"></div>
+        </div>
+        <div class="file-labels" id="playFileLabels"></div>
+        <div class="promo-overlay hidden" id="promoOverlay"></div>
+      </div>
+      <div class="play-controls" id="playControls">
+        <button class="danger" onclick="resignGame()">Resign</button>
+      </div>
+      <div id="playStatus"></div>
+    </div>
+
+    <!-- Spar animation panel -->
+    <div class="panel hidden" id="sparAnimPanel">
+      <h2 id="sparAnimTitle">Sparring...</h2>
+      <div class="chess-board-container" id="sparAnimBoardContainer">
+        <div class="board-wrapper">
+          <div class="rank-labels" id="sparAnimRankLabels"></div>
+          <div class="chess-board" id="sparAnimBoard"></div>
+        </div>
+        <div class="file-labels" id="sparAnimFileLabels"></div>
+      </div>
+      <div id="sparAnimStatus" style="font-size:0.85rem;color:var(--text-dim);margin:6px 0"></div>
+      <button class="secondary" onclick="skipSparAnim()">Skip</button>
+    </div>
+
+    <!-- Replay panel -->
+    <div class="panel hidden" id="replayPanel">
+      <h2>Game Replay</h2>
+      <div class="chess-board-container" id="replayBoardContainer">
+        <div class="board-wrapper">
+          <div class="rank-labels" id="replayRankLabels"></div>
+          <div class="chess-board" id="replayBoard"></div>
+        </div>
+        <div class="file-labels" id="replayFileLabels"></div>
+      </div>
+      <div class="replay-controls">
+        <button onclick="replayGoTo(0)" title="Start">&#9198;</button>
+        <button onclick="replayBack()" title="Back">&#9194;</button>
+        <button id="replayPlayBtn" onclick="toggleReplayAuto()" title="Play/Pause">&#9654;</button>
+        <button onclick="replayForward()" title="Forward">&#9193;</button>
+        <button onclick="replayGoTo(replayMoves.length)" title="End">&#9197;</button>
+        <button class="secondary" onclick="closeReplay()">Close</button>
+      </div>
+      <div class="replay-info" id="replayInfo"></div>
+      <div class="move-list" id="replayMoveList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Load chess.js ESM for client-side move generation -->
+<script type="module">
+  import { Chess } from '/js/chess.js';
+  window.Chess = Chess;
+  window.dispatchEvent(new Event('chess-ready'));
+</script>
+
+<!-- Application scripts (order matters — dependencies first) -->
+<script src="/js/log.js"></script>
+<script src="/js/board.js"></script>
+<script src="/js/replay.js"></script>
+<script src="/js/play.js"></script>
+<script src="/js/dev.js"></script>
+<script src="/js/terrarium.js"></script>
+<script src="/js/pixel-art.js"></script>
+<script src="/js/cards.js"></script>
+<script src="/js/hand.js"></script>
+<script src="/js/splash.js"></script>
+<script src="/js/ladder.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

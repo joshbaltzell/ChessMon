@@ -1,0 +1,224 @@
+/* ============================================================
+   ChessMon — Victory/Defeat Splash Screens
+   Full-screen overlay with particles and stat reveals
+   ============================================================ */
+
+.splash-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  animation: splashFadeIn 0.3s ease-out;
+  cursor: pointer;
+}
+
+.splash-overlay.splash-victory {
+  background: radial-gradient(ellipse at 50% 40%, rgba(0, 255, 136, 0.15) 0%, rgba(10, 10, 15, 0.95) 60%);
+}
+
+.splash-overlay.splash-defeat {
+  background: radial-gradient(ellipse at 50% 40%, rgba(255, 45, 138, 0.1) 0%, rgba(10, 10, 15, 0.95) 60%);
+}
+
+.splash-overlay.splash-draw {
+  background: radial-gradient(ellipse at 50% 40%, rgba(106, 106, 138, 0.1) 0%, rgba(10, 10, 15, 0.95) 60%);
+}
+
+.splash-overlay.splash-levelup {
+  background: radial-gradient(ellipse at 50% 40%, rgba(255, 215, 0, 0.2) 0%, rgba(10, 10, 15, 0.95) 60%);
+}
+
+@keyframes splashFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Title */
+.splash-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  animation: splashTitleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: 0.2s;
+}
+
+.splash-victory .splash-title {
+  color: var(--neon-green);
+  text-shadow: 0 0 20px var(--neon-green), 0 0 40px rgba(0, 255, 136, 0.3), 0 0 80px rgba(0, 255, 136, 0.1);
+}
+
+.splash-defeat .splash-title {
+  color: var(--neon-pink);
+  text-shadow: 0 0 15px rgba(255, 45, 138, 0.5);
+  opacity: 0.8;
+}
+
+.splash-draw .splash-title {
+  color: var(--text-dim);
+  text-shadow: 0 0 10px rgba(106, 106, 138, 0.5);
+}
+
+.splash-levelup .splash-title {
+  color: var(--neon-yellow);
+  text-shadow: 0 0 20px var(--neon-yellow), 0 0 40px rgba(255, 215, 0, 0.3), 0 0 80px rgba(255, 215, 0, 0.1);
+  animation: splashTitleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, levelupPulse 1.5s ease-in-out infinite;
+  animation-delay: 0.2s, 0.8s;
+}
+
+@keyframes splashTitleIn {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes levelupPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Subtitle */
+.splash-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  animation: splashSlideUp 0.5s ease-out backwards;
+  animation-delay: 0.5s;
+}
+
+.splash-levelup .splash-subtitle {
+  color: var(--neon-yellow);
+}
+
+@keyframes splashSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Stats */
+.splash-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.splash-stat {
+  text-align: center;
+  animation: splashStatIn 0.4s ease-out backwards;
+}
+
+.splash-stat:nth-child(1) { animation-delay: 0.7s; }
+.splash-stat:nth-child(2) { animation-delay: 0.9s; }
+.splash-stat:nth-child(3) { animation-delay: 1.1s; }
+.splash-stat:nth-child(4) { animation-delay: 1.3s; }
+
+@keyframes splashStatIn {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.splash-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.splash-stat-value.positive { color: var(--neon-green); }
+.splash-stat-value.negative { color: var(--neon-pink); }
+.splash-stat-value.gold { color: var(--neon-yellow); }
+
+.splash-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+/* Emotion */
+.splash-emotion {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  animation: splashSlideUp 0.5s ease-out backwards;
+  animation-delay: 1.4s;
+}
+
+.splash-emotion .splash-face {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Dismiss hint */
+.splash-dismiss {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  margin-top: 20px;
+  animation: splashSlideUp 0.5s ease-out backwards;
+  animation-delay: 2s;
+}
+
+/* Particles */
+.splash-particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  animation: particleFall linear forwards;
+}
+
+@keyframes particleFall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+}
+
+/* Confetti (victory) */
+.splash-confetti {
+  position: absolute;
+  pointer-events: none;
+  width: 8px;
+  height: 8px;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(-20px) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translateY(100vh) rotate(1080deg) scale(0.3); }
+}
+
+/* Ember (defeat) */
+.splash-ember {
+  position: absolute;
+  pointer-events: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--neon-orange);
+  animation: emberFloat linear forwards;
+}
+
+@keyframes emberFloat {
+  0% { opacity: 0.8; transform: translateY(0) translateX(0); }
+  100% { opacity: 0; transform: translateY(-200px) translateX(var(--drift, 30px)); }
+}
+
+/* Sparkle (level-up) */
+.splash-sparkle {
+  position: absolute;
+  pointer-events: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon-yellow);
+  animation: sparkleFloat 2s ease-out forwards;
+}
+
+@keyframes sparkleFloat {
+  0% { opacity: 1; transform: scale(0) rotate(0deg); }
+  30% { opacity: 1; transform: scale(1.5) rotate(180deg); }
+  100% { opacity: 0; transform: scale(0) rotate(360deg) translateY(-100px); }
+}

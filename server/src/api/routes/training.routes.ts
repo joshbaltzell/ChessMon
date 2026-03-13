@@ -6,6 +6,7 @@ import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
 import { botIdParamSchema, sparSchema, tacticKeySchema, parseOrThrow } from '../schemas/validation.js'
 import { rateLimitHeavy } from '../plugins/rate-limiter.js'
+import { config } from '../../config.js'
 
 // Limit concurrent game simulations to prevent Stockfish pool saturation
 const sparLimiter = new ConcurrencyLimiter(8)
@@ -93,6 +94,28 @@ export function createTrainingRoutes(pool: StockfishPool) {
         throw err
       }
     })
+
+    // Dev-only: spar without training point cost (for ML learning curve testing)
+    if (config.devMode) {
+      app.post('/bots/:id/train/dev-spar', { onRequest: [app.authenticate] }, async (request, reply) => {
+        const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
+        const { playerId } = request.user
+        const body = parseOrThrow(sparSchema, request.body)
+
+        const bot = botService.getById(botId)
+        if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
+        if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+
+        try {
+          const result = await sparLimiter.run(() =>
+            trainingService.devSpar(botId, body.opponent_level)
+          )
+          return result
+        } catch (err: any) {
+          throw err
+        }
+      })
+    }
 
     // Get training log
     app.get('/bots/:id/training-log', { onRequest: [app.authenticate] }, async (request, reply) => {
