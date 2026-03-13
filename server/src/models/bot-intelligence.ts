@@ -10,7 +10,22 @@ export interface BotRecord {
   alignmentAttack: string
   alignmentStyle: string
   mlWeightsBlob: Buffer | null
+  gamesPlayed: number
   id: number
+}
+
+/**
+ * Compute how much influence the ML model should have on move selection.
+ * Scales with experience: untrained bots use pure attribute scoring,
+ * experienced bots blend up to 40% ML influence.
+ */
+export function computeMlBlendWeight(gamesPlayed: number): number {
+  if (gamesPlayed <= 0) return 0.0
+  if (gamesPlayed <= 2) return 0.10
+  if (gamesPlayed <= 5) return 0.20
+  if (gamesPlayed <= 10) return 0.30
+  if (gamesPlayed <= 20) return 0.35
+  return 0.40
 }
 
 /**
@@ -119,6 +134,7 @@ export function botToPlayParameters(bot: BotRecord, openingBook?: OpeningBookEnt
     positionalWeight: Math.min(1.5, positionalWeight),
     tacticalWeight: Math.min(1.5, tacticalWeight),
     endgameWeight: Math.min(1.5, endgameWeight),
+    mlBlendWeight: computeMlBlendWeight(bot.gamesPlayed),
     openingBook: openingBook ?? null,
     mlModel: bot.mlWeightsBlob ? { botId: bot.id, weightsBlob: bot.mlWeightsBlob } : null,
   }
@@ -138,6 +154,7 @@ export function systemBotPlayParameters(level: number): PlayParameters {
     positionalWeight: 0.7,
     tacticalWeight: 0.5,
     endgameWeight: 0.6,
+    mlBlendWeight: 0,
     openingBook: null,
     mlModel: null,
   }

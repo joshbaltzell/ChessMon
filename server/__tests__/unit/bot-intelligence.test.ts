@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { botToPlayParameters, type BotRecord } from '../../src/models/bot-intelligence.js'
+import { botToPlayParameters, computeMlBlendWeight, type BotRecord } from '../../src/models/bot-intelligence.js'
 
 function makeBot(overrides: Partial<BotRecord> = {}): BotRecord {
   return {
@@ -13,6 +13,7 @@ function makeBot(overrides: Partial<BotRecord> = {}): BotRecord {
     alignmentAttack: 'balanced',
     alignmentStyle: 'positional',
     mlWeightsBlob: null,
+    gamesPlayed: 0,
     ...overrides,
   }
 }
@@ -176,5 +177,23 @@ describe('Bot Intelligence - Attribute Balance', () => {
       expect(params.searchDepth).toBeGreaterThanOrEqual(3)
       expect(params.blunderRate).toBeLessThan(0.2)
     }
+  })
+
+  it('mlBlendWeight should scale with gamesPlayed', () => {
+    expect(computeMlBlendWeight(0)).toBe(0.0)
+    expect(computeMlBlendWeight(1)).toBe(0.10)
+    expect(computeMlBlendWeight(2)).toBe(0.10)
+    expect(computeMlBlendWeight(5)).toBe(0.20)
+    expect(computeMlBlendWeight(10)).toBe(0.30)
+    expect(computeMlBlendWeight(20)).toBe(0.35)
+    expect(computeMlBlendWeight(50)).toBe(0.40)
+  })
+
+  it('botToPlayParameters should include mlBlendWeight based on gamesPlayed', () => {
+    const newBot = makeBot({ gamesPlayed: 0 })
+    const experiencedBot = makeBot({ gamesPlayed: 15 })
+
+    expect(botToPlayParameters(newBot).mlBlendWeight).toBe(0.0)
+    expect(botToPlayParameters(experiencedBot).mlBlendWeight).toBe(0.35)
   })
 })

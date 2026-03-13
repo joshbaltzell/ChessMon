@@ -5,11 +5,16 @@ import { getAsciiArt, getAvailableSkins, getDesignPacks } from '../models/cosmet
 import { generateEmotionResponse, getBotCatchphrase } from '../models/personality.js'
 import { LEVEL_CONFIGS, XP_PER_SPAR } from '../models/progression.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
+import { loadModel } from '../ml/model-store.js'
+import { probeStyle, type StyleProfile } from '../ml/style-probe.js'
+
+const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
+const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
 
 export class DashboardService {
   constructor(private db: DrizzleDb) {}
 
-  getBotDashboard(botId: number) {
+  async getBotDashboard(botId: number) {
     const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
     if (!bot) throw new Error('Bot not found')
 
@@ -98,6 +103,20 @@ export class DashboardService {
     const skins = getAvailableSkins(bot.level, bot.gamesPlayed)
     const designPacks = getDesignPacks(bot.level, bot.gamesPlayed)
 
+    // Style profile from ML model (if trained)
+    let learnedStyle: StyleProfile | null = null
+    try {
+      const mlModel = await loadModel(this.db, botId)
+      if (mlModel) {
+        learnedStyle = probeStyle(
+          mlModel,
+          { aggression: bot.aggression, positional: bot.positional, tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity },
+          ALIGNMENT_ATTACK_MAP[bot.alignmentAttack] ?? 1,
+          ALIGNMENT_STYLE_MAP[bot.alignmentStyle] ?? 1,
+        )
+      }
+    } catch { /* ML probe failed, non-critical */ }
+
     return {
       identity: {
         id: bot.id,
@@ -153,6 +172,14 @@ export class DashboardService {
         level: latestLevelTest.level,
         passed: latestLevelTest.passed === 1,
         results: JSON.parse(latestLevelTest.resultsJson),
+      } : null,
+      learnedStyle: learnedStyle ? {
+        aggressiveness: learnedStyle.aggressiveness,
+        positionality: learnedStyle.positionality,
+        tacticalSharpness: learnedStyle.tacticalSharpness,
+        endgameGrip: learnedStyle.endgameGrip,
+        unpredictability: learnedStyle.unpredictability,
+        gamesAnalyzed: bot.gamesPlayed,
       } : null,
       nextChallenge: nextLevelConfig ? {
         targetLevel: bot.level + 1,

@@ -10,7 +10,7 @@ const uid = () => Math.random().toString(36).slice(2, 10)
 describe('Bot Dashboard', () => {
   beforeAll(() => {
     process.env.DB_PATH = ':memory:'
-    initializeDb()
+    initializeDb(':memory:')
   })
 
   it('should return a comprehensive dashboard for a new bot', async () => {
@@ -28,7 +28,7 @@ describe('Bot Dashboard', () => {
       alignmentStyle: 'sacrificial' as AlignmentStyle,
     })
 
-    const dashboard = dashboardService.getBotDashboard(bot.id)
+    const dashboard = await dashboardService.getBotDashboard(bot.id)
 
     // Identity
     expect(dashboard.identity.name).toBe(bot.name)
@@ -68,6 +68,9 @@ describe('Bot Dashboard', () => {
 
     // Next challenge
     expect(dashboard.nextChallenge).toBeTruthy()
+
+    // Learned style (null for a new bot with no ML model)
+    expect(dashboard.learnedStyle).toBeNull()
   })
 
   it('should identify dominant attribute correctly', async () => {
@@ -86,7 +89,8 @@ describe('Bot Dashboard', () => {
       alignmentAttack: 'balanced' as AlignmentAttack,
       alignmentStyle: 'positional' as AlignmentStyle,
     })
-    expect(dashboardService.getBotDashboard(balanced.id).attributes.dominant).toBe('balanced')
+    const balancedDash = await dashboardService.getBotDashboard(balanced.id)
+    expect(balancedDash.attributes.dominant).toBe('balanced')
 
     // Endgame focused
     const endgamer = botService.create({
@@ -96,13 +100,14 @@ describe('Bot Dashboard', () => {
       alignmentAttack: 'defensive' as AlignmentAttack,
       alignmentStyle: 'positional' as AlignmentStyle,
     })
-    expect(dashboardService.getBotDashboard(endgamer.id).attributes.dominant).toBe('endgame')
+    const endgamerDash = await dashboardService.getBotDashboard(endgamer.id)
+    expect(endgamerDash.attributes.dominant).toBe('endgame')
   })
 
-  it('should throw for non-existent bot', () => {
+  it('should throw for non-existent bot', async () => {
     const db = getDb()
     const dashboardService = new DashboardService(db)
 
-    expect(() => dashboardService.getBotDashboard(99999)).toThrow('Bot not found')
+    await expect(dashboardService.getBotDashboard(99999)).rejects.toThrow('Bot not found')
   })
 })
