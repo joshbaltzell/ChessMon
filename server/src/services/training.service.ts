@@ -7,7 +7,8 @@ import { botToPlayParameters, systemBotPlayParameters } from '../models/bot-inte
 import { calculateEloChange } from '../models/elo.js'
 import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR } from '../models/progression.js'
 import { trainBotFromGame } from '../ml/training-pipeline.js'
-import { loadModel } from '../ml/model-store.js'
+import { loadModel, getOrCreateModel } from '../ml/model-store.js'
+import { probeStyle, computeStyleShift, type StyleProfile, type StyleProbeResult } from '../ml/style-probe.js'
 import { generateEmotionResponse } from '../models/personality.js'
 import { generateMatchRecap } from '../models/battle-commentary.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
@@ -86,7 +87,7 @@ export class TrainingService {
       blackContext: botIsWhite ? undefined : botContext,
     })
 
-    // ML Training: learn from the game
+    // ML Training: learn from the game (with replay buffer for persistent memory)
     const mlTrainingResult = await trainBotFromGame(
       this.db,
       botId,
@@ -102,7 +103,49 @@ export class TrainingService {
         alignmentAttack: bot.alignmentAttack,
         alignmentStyle: bot.alignmentStyle,
       },
+      bot.mlReplayBuffer,
     )
+
+    // Save updated replay buffer
+    this.db.update(bots)
+      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
+      .where(eq(bots.id, botId))
+      .run()
+
+    // Style probe: measure the bot's learned personality after training
+    let styleProbeResult: StyleProbeResult | null = null
+    try {
+      const trainedModel = await getOrCreateModel(this.db, botId, bot.alignmentAttack, bot.alignmentStyle)
+      const currentStyle = probeStyle(
+        trainedModel,
+        { aggression: bot.aggression, positional: bot.positional, tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity },
+        ALIGNMENT_ATTACK_MAP[bot.alignmentAttack] ?? 1,
+        ALIGNMENT_STYLE_MAP[bot.alignmentStyle] ?? 1,
+      )
+
+      // Try to get previous style from training log for shift calculation
+      let previousStyle: StyleProfile | null = null
+      const lastSparLog = this.db.select().from(trainingLog)
+        .where(eq(trainingLog.botId, botId))
+        .all()
+        .filter(l => l.actionType === 'spar')
+        .pop()
+      if (lastSparLog) {
+        try {
+          const parsed = JSON.parse(lastSparLog.resultJson)
+          if (parsed.styleProfile) {
+            previousStyle = parsed.styleProfile
+          }
+        } catch { /* no previous style data */ }
+      }
+
+      styleProbeResult = {
+        profile: currentStyle,
+        shift: computeStyleShift(currentStyle, previousStyle),
+      }
+    } catch {
+      // Style probe failed, non-critical — continue without it
+    }
 
     // Calculate Elo change
     const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
@@ -150,6 +193,7 @@ export class TrainingService {
           samplesUsed: mlTrainingResult.samplesUsed,
           finalLoss: mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] ?? null,
         },
+        styleProfile: styleProbeResult?.profile ?? null,
       }),
     }).run()
 
@@ -184,6 +228,8 @@ export class TrainingService {
         improved: mlTrainingResult.epochLosses.length >= 2 &&
           mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] <
           mlTrainingResult.epochLosses[0],
+        styleProfile: styleProbeResult?.profile ?? null,
+        styleShift: styleProbeResult?.shift ?? null,
       },
       emotion,
       recap: generateMatchRecap(

@@ -200,9 +200,39 @@ function extractFeaturesFromChess(
   fileCount = (fileCount + (fileCount >> 4)) & 0x0F
   features[123] = fileCount / 8
 
-  features[124] = 0.5 // placeholder king safety
+  // Style indicator features [124-127]: explicit signals for style learning
+  // These encode "is this move aggressive/positional/tactical/creative?" directly,
+  // helping the model learn style dimensions faster with less data.
 
-  features[125] = centipawns > 0 ? 1 : centipawns < 0 ? 0 : 0.5
+  // [124] Aggressiveness indicator: captures, checks, king attacks
+  const isCapture = features[75] > 0
+  const isCheck = features[76] > 0
+  features[124] = (
+    0.4 * (isCapture ? 1 : 0) +
+    0.4 * (isCheck ? 1 : 0) +
+    0.2 * (features[88] > 0.3 ? 1 : 0) // High-value capture
+  )
+
+  // [125] Positionality indicator: engine agreement, quiet strong moves
+  const isTopCandidate = candidateIndex <= 1
+  features[125] = (
+    0.5 * (isTopCandidate ? 1 : 0) +
+    0.3 * (features[87] > 0 ? 1 : 0) + // Castling
+    0.2 * (!isCapture && !isCheck && isTopCandidate ? 1 : 0) // Quiet strong
+  )
+
+  // [126] Tactical sharpness: eval-justified forcing moves
+  const evalAdvantage = 1 / (1 + Math.exp(-centipawns / 200))
+  features[126] = (
+    0.3 * (isCapture ? 1 : 0) +
+    0.3 * (isCheck ? 1 : 0) +
+    0.2 * evalAdvantage +
+    0.2 * (features[77] > 0 ? 1 : 0) // Promotion
+  )
+
+  // [127] Creativity indicator: non-obvious but playable moves
+  features[127] = candidateIndex > 0 && candidateIndex <= 3 &&
+    Math.abs(centipawns) < 100 ? 0.7 : candidateIndex === 0 ? 0.2 : 0.1
 
   return features
 }

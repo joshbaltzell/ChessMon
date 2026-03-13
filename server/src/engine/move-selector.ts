@@ -114,8 +114,10 @@ export async function selectMove(
   })
 
   // Step 5: ML preference adjustment — uses batch extraction (single Chess + board() call)
+  // Blend weight scales with bot experience (0% for untrained, up to 40% for experienced)
   let finalScores = scores
-  if (context?.mlModel && context.botColor && context.botAttributes) {
+  const mlBlendWeight = params.mlBlendWeight
+  if (mlBlendWeight > 0 && context?.mlModel && context.botColor && context.botAttributes) {
     try {
       const featureBatch = extractFeaturesBatch(
         fen,
@@ -125,7 +127,7 @@ export async function selectMove(
         context.alignmentAttack ?? 1, context.alignmentStyle ?? 1,
       )
       const mlScores = context.mlModel.predict(featureBatch)
-      finalScores = scores.map((s, i) => 0.7 * s + 0.3 * mlScores[i])
+      finalScores = scores.map((s, i) => (1 - mlBlendWeight) * s + mlBlendWeight * mlScores[i])
     } catch {
       // ML prediction failed, use attribute scores only
     }

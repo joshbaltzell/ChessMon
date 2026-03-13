@@ -50,6 +50,7 @@ export function initializeDb(dbPath?: string) {
       alignment_style TEXT NOT NULL CHECK(alignment_style IN ('chaotic', 'positional', 'sacrificial')),
       training_points_remaining INTEGER NOT NULL DEFAULT 10,
       ml_weights_blob BLOB,
+      ml_replay_buffer BLOB,
       ascii_tier INTEGER NOT NULL DEFAULT 1,
       skin_id TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())

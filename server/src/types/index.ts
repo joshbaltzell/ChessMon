@@ -13,6 +13,7 @@ export interface PlayParameters {
   positionalWeight: number
   tacticalWeight: number
   endgameWeight: number
+  mlBlendWeight: number
   openingBook: OpeningBookEntry | null
   mlModel: MlModelHandle | null
 }

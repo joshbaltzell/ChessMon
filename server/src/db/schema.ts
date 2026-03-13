@@ -28,6 +28,7 @@ export const bots = sqliteTable('bots', {
 
   trainingPointsRemaining: integer('training_points_remaining').notNull().default(10),
   mlWeightsBlob: blob('ml_weights_blob', { mode: 'buffer' }),
+  mlReplayBuffer: blob('ml_replay_buffer', { mode: 'buffer' }),
   asciiTier: integer('ascii_tier').notNull().default(1),
   skinId: text('skin_id'),
 
