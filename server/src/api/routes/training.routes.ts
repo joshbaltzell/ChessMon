@@ -17,19 +17,20 @@ export function createTrainingRoutes(pool: StockfishPool) {
     const trainingService = new TrainingService(db, pool)
     const botService = new BotService(db)
 
+    // Helper: verify bot ownership
+    function verifyOwnership(botId: number, playerId: number) {
+      const bot = botService.getById(botId)
+      if (!bot) throw Object.assign(new Error('Bot not found'), { statusCode: 404, code: 'BOT_NOT_FOUND' })
+      if (bot.playerId !== playerId) throw Object.assign(new Error('Not your bot'), { statusCode: 403, code: 'NOT_OWNER' })
+      return bot
+    }
+
     app.post('/bots/:id/train/spar', { onRequest: [app.authenticate, rateLimitHeavy] }, async (request, reply) => {
       const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
       const body = parseOrThrow(sparSchema, request.body)
 
-      // Verify ownership
-      const bot = botService.getById(botId)
-      if (!bot) {
-        return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      }
-      if (bot.playerId !== playerId) {
-        return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
-      }
+      verifyOwnership(botId, playerId)
 
       try {
         const result = await sparLimiter.run(() =>
@@ -55,9 +56,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
       const { playerId } = request.user
       const { tactic_key } = parseOrThrow(tacticKeySchema, request.body)
 
-      const bot = botService.getById(botId)
-      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      verifyOwnership(botId, playerId)
 
       try {
         return await trainingService.purchaseTactic(botId, tactic_key)
@@ -78,9 +77,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
       const { playerId } = request.user
       const { tactic_key } = parseOrThrow(tacticKeySchema, request.body)
 
-      const bot = botService.getById(botId)
-      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      verifyOwnership(botId, playerId)
 
       try {
         return await trainingService.drill(botId, tactic_key)
@@ -102,9 +99,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
         const { playerId } = request.user
         const body = parseOrThrow(sparSchema, request.body)
 
-        const bot = botService.getById(botId)
-        if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-        if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+        verifyOwnership(botId, playerId)
 
         try {
           const result = await sparLimiter.run(() =>
@@ -122,9 +117,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
       const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
 
-      const bot = botService.getById(botId)
-      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      verifyOwnership(botId, playerId)
 
       return trainingService.getTrainingLog(botId)
     })

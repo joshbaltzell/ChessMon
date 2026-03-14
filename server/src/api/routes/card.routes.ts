@@ -68,21 +68,13 @@ export function createCardRoutes(pool: StockfishPool) {
         let effect: any = null
 
         switch (card.key) {
-          case 'spar': {
-            const oppLevel = body.opponent_level || 1
-            effect = await sparLimiter.run(() =>
-              trainingService.cardSpar(botId, oppLevel, 1)
-            )
-            // Check if this was a ladder opponent and bot won
-            checkLadderDefeat(botId, oppLevel, effect)
-            break
-          }
+          case 'spar':
           case 'power_spar': {
             const oppLevel = body.opponent_level || 1
+            const xpMult = card.key === 'power_spar' ? 4 : 1
             effect = await sparLimiter.run(() =>
-              trainingService.cardSpar(botId, oppLevel, 4) // 4x XP multiplier
+              trainingService.cardSpar(botId, oppLevel, xpMult)
             )
-            // Check if this was a ladder opponent and bot won
             checkLadderDefeat(botId, oppLevel, effect)
             break
           }
@@ -151,7 +143,10 @@ export function createCardRoutes(pool: StockfishPool) {
 
         return { card, hand, effect }
       } catch (err: any) {
-        if (err.message.includes('Not enough energy') || err.message.includes('Card not found') || err.message.includes('No hand found')) {
+        if (err.statusCode) {
+          return reply.status(err.statusCode).send({ error: err.message, code: err.code || 'CARD_ERROR' })
+        }
+        if (err.message?.includes('Not enough energy') || err.message?.includes('Card not found') || err.message?.includes('No hand found')) {
           return reply.status(400).send({ error: err.message, code: 'CARD_ERROR' })
         }
         throw err

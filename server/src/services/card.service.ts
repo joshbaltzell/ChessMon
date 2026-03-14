@@ -147,8 +147,13 @@ export class CardService {
    * Increment energy in the card_hands row.
    */
   addEnergy(botId: number, amount: number): void {
-    const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
-    if (!existing) throw new Error('No hand found. Draw cards first.')
+    let existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+    if (!existing) {
+      // Auto-create hand if none exists
+      this.drawHand(botId)
+      existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+      if (!existing) return // Bot doesn't exist
+    }
 
     this.db.update(cardHands)
       .set({
@@ -293,9 +298,22 @@ export class CardService {
    */
   randomDrawFiltered(count: number, botLevel: number): HandCard[] {
     const filteredDefs = CARD_DEFINITIONS.filter(def => (def.unlockedAtLevel || 1) <= botLevel)
-    // Build a level-filtered pool respecting card counts
+    return this.drawFromPool(count, filteredDefs)
+  }
+
+  /**
+   * Randomly draw `count` cards from the full pool (no level filtering).
+   */
+  private randomDraw(count: number): HandCard[] {
+    return this.drawFromPool(count, CARD_DEFINITIONS)
+  }
+
+  /**
+   * Core draw logic: builds a weighted pool from definitions and draws cards.
+   */
+  private drawFromPool(count: number, definitions: CardDefinition[]): HandCard[] {
     const pool: CardDefinition[] = []
-    for (const def of filteredDefs) {
+    for (const def of definitions) {
       for (let i = 0; i < def.count; i++) {
         pool.push(def)
       }
@@ -311,38 +329,7 @@ export class CardService {
       instanceCounts[def.key] = (instanceCounts[def.key] || 0) + 1
 
       hand.push({
-        id: `${def.key}_${instanceCounts[def.key]}_${Date.now()}_${i}`,
-        key: def.key,
-        name: def.name,
-        energy: def.energy,
-        type: def.type as HandCard['type'],
-        color: def.color,
-        icon: def.icon,
-        description: def.description,
-        flavor: def.flavor,
-      })
-    }
-
-    return hand
-  }
-
-  /**
-   * Randomly draw `count` cards from the full pool (no level filtering).
-   */
-  private randomDraw(count: number): HandCard[] {
-    const pool = [...CARD_POOL]
-    const hand: HandCard[] = []
-    const instanceCounts: Record<string, number> = {}
-
-    for (let i = 0; i < count && pool.length > 0; i++) {
-      const idx = Math.floor(Math.random() * pool.length)
-      const def = pool.splice(idx, 1)[0]
-
-      // Track instance number for unique IDs
-      instanceCounts[def.key] = (instanceCounts[def.key] || 0) + 1
-
-      hand.push({
-        id: `${def.key}_${instanceCounts[def.key]}_${Date.now()}_${i}`,
+        id: `${def.key}_${instanceCounts[def.key]}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${i}`,
         key: def.key,
         name: def.name,
         energy: def.energy,

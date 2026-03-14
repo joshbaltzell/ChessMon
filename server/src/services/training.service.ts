@@ -108,11 +108,7 @@ export class TrainingService {
       bot.mlReplayBuffer,
     )
 
-    // Save updated replay buffer
-    this.db.update(bots)
-      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
-      .where(eq(bots.id, botId))
-      .run()
+    // Note: replay buffer saved below after game record insert (atomic ordering)
 
     // Style probe: measure the bot's learned personality after training
     let styleProbeResult: StyleProbeResult | null = null
@@ -165,13 +161,14 @@ export class TrainingService {
       context: 'training',
     }).returning().get()
 
-    // Update bot stats
+    // Update bot stats + save replay buffer (after game record for atomicity)
     this.db.update(bots)
       .set({
         elo: newElo,
         gamesPlayed: bot.gamesPlayed + 1,
         xp: bot.xp + XP_PER_SPAR,
         trainingPointsRemaining: bot.trainingPointsRemaining - SPAR_COST,
+        mlReplayBuffer: mlTrainingResult.updatedReplayBuffer,
       })
       .where(eq(bots.id, botId))
       .run()
@@ -253,27 +250,78 @@ export class TrainingService {
     if (!bot) throw new Error('Bot not found')
 
     const level = opponentLevel || bot.level + 1
-    const opponentParams = systemBotPlayParameters(level)
-    const opponentElo = (level * 100) + 300
-    const opponentDescription = `System Bot Level ${level}`
+    const { gameResult, botIsWhite, botColor, mlTrainingResult } =
+      await this.executeSpar(bot, level)
 
-    // Load bot's opening book from owned tactics
-    const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
+    const opponentElo = (level * 100) + 300
+    const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
+    const newElo = Math.max(100, bot.elo + eloChange)
+
+    // Store game record first, then update replay buffer
+    const gameRecord = this.db.insert(gameRecords).values({
+      whiteBotId: botIsWhite ? botId : null,
+      blackBotId: botIsWhite ? null : botId,
+      whiteSystemLevel: botIsWhite ? null : level,
+      blackSystemLevel: botIsWhite ? level : null,
+      pgn: gameResult.pgn, result: gameResult.result,
+      moveCount: gameResult.moveCount, context: 'training',
+    }).returning().get()
+
+    // Save replay buffer after game record (fixes ordering bug)
+    this.db.update(bots)
+      .set({
+        mlReplayBuffer: mlTrainingResult.updatedReplayBuffer,
+        elo: newElo,
+        gamesPlayed: bot.gamesPlayed + 1,
+        xp: bot.xp + XP_PER_SPAR,
+      })
+      .where(eq(bots.id, botId))
+      .run()
+
+    return {
+      game: {
+        id: gameRecord.id,
+        result: gameResult.result,
+        moveCount: gameResult.moveCount,
+        pgn: gameResult.pgn,
+        botPlayedWhite: botIsWhite,
+        opponent: `System Bot Level ${level}`,
+      },
+      eloChange,
+      newElo,
+      xpGained: XP_PER_SPAR,
+      mlTraining: {
+        samplesUsed: mlTrainingResult.samplesUsed,
+        finalLoss: mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] ?? null,
+        improved: mlTrainingResult.epochLosses.length >= 2 &&
+          mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] <
+          mlTrainingResult.epochLosses[0],
+      },
+    }
+  }
+
+  /**
+   * Shared core spar logic: simulates a game and trains ML.
+   * Returns the raw results without DB side-effects (caller handles those).
+   */
+  private async executeSpar(
+    bot: any,
+    opponentLevel: number,
+    options?: { epochs?: number },
+  ) {
+    const opponentParams = systemBotPlayParameters(opponentLevel)
+
+    const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, bot.id)).all()
     const openingBook = getBestOpeningBook(botTacticsOwned)
     const botParams = botToPlayParameters(bot, openingBook)
-
-    // Load ML model for the bot if available
-    const mlModel = await loadModel(this.db, botId)
+    const mlModel = await loadModel(this.db, bot.id)
 
     const botContext: MoveSelectorContext = {
       mlModel,
       botColor: undefined,
       botAttributes: {
-        aggression: bot.aggression,
-        positional: bot.positional,
-        tactical: bot.tactical,
-        endgame: bot.endgame,
-        creativity: bot.creativity,
+        aggression: bot.aggression, positional: bot.positional,
+        tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity,
       },
       alignmentAttack: ALIGNMENT_ATTACK_MAP[bot.alignmentAttack] ?? 1,
       alignmentStyle: ALIGNMENT_STYLE_MAP[bot.alignmentStyle] ?? 1,
@@ -291,70 +339,18 @@ export class TrainingService {
       blackContext: botIsWhite ? undefined : botContext,
     })
 
-    // ML Training (with replay buffer for persistent memory)
     const mlTrainingResult = await trainBotFromGame(
-      this.db, botId, gameResult.positions, gameResult.result, botColor,
+      this.db, bot.id, gameResult.positions, gameResult.result, botColor,
       {
         aggression: bot.aggression, positional: bot.positional,
         tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity,
         alignmentAttack: bot.alignmentAttack, alignmentStyle: bot.alignmentStyle,
       },
       bot.mlReplayBuffer,
+      options,
     )
 
-    // Save updated replay buffer
-    this.db.update(bots)
-      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
-      .where(eq(bots.id, botId))
-      .run()
-
-    // Elo change
-    const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
-    const newElo = Math.max(100, bot.elo + eloChange)
-
-    // Store game record
-    const gameRecord = this.db.insert(gameRecords).values({
-      whiteBotId: botIsWhite ? botId : null,
-      blackBotId: botIsWhite ? null : botId,
-      whiteSystemLevel: botIsWhite ? null : level,
-      blackSystemLevel: botIsWhite ? level : null,
-      pgn: gameResult.pgn, result: gameResult.result,
-      moveCount: gameResult.moveCount, context: 'training',
-    }).returning().get()
-
-    // Update bot elo and games played — but NOT training points
-    this.db.update(bots)
-      .set({
-        elo: newElo,
-        gamesPlayed: bot.gamesPlayed + 1,
-        xp: bot.xp + XP_PER_SPAR,
-      })
-      .where(eq(bots.id, botId))
-      .run()
-
-    const botWon = (gameResult.result === '1-0' && botIsWhite) || (gameResult.result === '0-1' && !botIsWhite)
-    const botLost = (gameResult.result === '1-0' && !botIsWhite) || (gameResult.result === '0-1' && botIsWhite)
-
-    return {
-      game: {
-        id: gameRecord.id,
-        result: gameResult.result,
-        moveCount: gameResult.moveCount,
-        pgn: gameResult.pgn,
-        botPlayedWhite: botIsWhite,
-        opponent: opponentDescription,
-      },
-      eloChange,
-      newElo,
-      xpGained: XP_PER_SPAR,
-      mlTraining: {
-        samplesUsed: mlTrainingResult.samplesUsed,
-        finalLoss: mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] ?? null,
-        improved: mlTrainingResult.epochLosses.length >= 2 &&
-          mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] <
-          mlTrainingResult.epochLosses[0],
-      },
-    }
+    return { gameResult, botIsWhite, botColor, mlTrainingResult }
   }
 
   async purchaseTactic(botId: number, tacticKey: string) {
@@ -506,12 +502,6 @@ export class TrainingService {
       bot.mlReplayBuffer,
     )
 
-    // Save updated replay buffer
-    this.db.update(bots)
-      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
-      .where(eq(bots.id, botId))
-      .run()
-
     const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
     const newElo = Math.max(100, bot.elo + eloChange)
     const xpGained = XP_PER_SPAR * xpMultiplier
@@ -525,12 +515,13 @@ export class TrainingService {
       moveCount: gameResult.moveCount, context: 'training',
     }).returning().get()
 
-    // Update bot stats — NO training point deduction (card system handles it)
+    // Update bot stats + replay buffer (after game record for atomicity)
     this.db.update(bots)
       .set({
         elo: newElo,
         gamesPlayed: bot.gamesPlayed + 1,
         xp: bot.xp + xpGained,
+        mlReplayBuffer: mlTrainingResult.updatedReplayBuffer,
       })
       .where(eq(bots.id, botId))
       .run()
@@ -662,12 +653,6 @@ export class TrainingService {
       { epochs: 6 },
     )
 
-    // Save updated replay buffer
-    this.db.update(bots)
-      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
-      .where(eq(bots.id, botId))
-      .run()
-
     // Determine outcome
     const botWon = (gameResult.result === '1-0' && botIsWhite) || (gameResult.result === '0-1' && !botIsWhite)
     const botLost = (gameResult.result === '1-0' && !botIsWhite) || (gameResult.result === '0-1' && botIsWhite)
@@ -691,22 +676,16 @@ export class TrainingService {
     }
     // Draw: streak unchanged
 
-    // Energy: +1 base
+    // Calculate total energy earned, then add once
     let energyEarned = 1
-    cardService.addEnergy(botId, 1)
+    if (streak >= 3) energyEarned += 2
 
-    // Streak bonus: +2 energy at streak >= 3
-    if (streak >= 3) {
-      energyEarned += 2
-      cardService.addEnergy(botId, 2)
-    }
-
-    // Loot
     const loot = lootService.rollLoot(botId, bot.level)
     if (loot.type === 'energy' && loot.data?.amount) {
       energyEarned += loot.data.amount
-      cardService.addEnergy(botId, loot.data.amount)
     }
+
+    cardService.addEnergy(botId, energyEarned)
 
     // Store game record
     const gameRecord = this.db.insert(gameRecords).values({
@@ -718,12 +697,13 @@ export class TrainingService {
       moveCount: gameResult.moveCount, context: 'training',
     }).returning().get()
 
-    // Update bot stats — NO training point deduction
+    // Update bot stats + replay buffer (after game record for atomicity)
     this.db.update(bots)
       .set({
         elo: newElo,
         gamesPlayed: bot.gamesPlayed + 1,
         xp: bot.xp + xpGained,
+        mlReplayBuffer: mlTrainingResult.updatedReplayBuffer,
       })
       .where(eq(bots.id, botId))
       .run()

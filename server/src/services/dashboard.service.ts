@@ -1,5 +1,5 @@
-import { eq, desc } from 'drizzle-orm'
-import { bots, botTactics, trainingLog, gameRecords, levelTests } from '../db/schema.js'
+import { eq, or, and, desc } from 'drizzle-orm'
+import { bots, botTactics, trainingLog, gameRecords, levelTests, championshipBouts } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import { getAsciiArt, getAvailableSkins, getDesignPacks } from '../models/cosmetics.js'
 import { generateEmotionResponse, getBotCatchphrase } from '../models/personality.js'
@@ -9,7 +9,6 @@ import { loadModel } from '../ml/model-store.js'
 import { probeStyle, type StyleProfile } from '../ml/style-probe.js'
 import { CardService } from './card.service.js'
 import { LadderService } from './ladder.service.js'
-import { ChampionshipService } from './championship.service.js'
 
 const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
 const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
@@ -23,19 +22,10 @@ export class DashboardService {
 
     const tactics = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
     const recentGames = this.db.select().from(gameRecords)
-      .where(eq(gameRecords.whiteBotId, botId))
+      .where(or(eq(gameRecords.whiteBotId, botId), eq(gameRecords.blackBotId, botId)))
       .orderBy(desc(gameRecords.createdAt))
       .limit(5)
       .all()
-      .concat(
-        this.db.select().from(gameRecords)
-          .where(eq(gameRecords.blackBotId, botId))
-          .orderBy(desc(gameRecords.createdAt))
-          .limit(5)
-          .all()
-      )
-      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
-      .slice(0, 5)
 
     const recentLog = this.db.select().from(trainingLog)
       .where(eq(trainingLog.botId, botId))
@@ -87,14 +77,14 @@ export class DashboardService {
     const openingBook = getBestOpeningBook(tactics)
 
     // Win/loss record
-    const allGames = this.db.select().from(gameRecords).all()
+    const botGames = this.db.select().from(gameRecords)
+      .where(or(eq(gameRecords.whiteBotId, botId), eq(gameRecords.blackBotId, botId)))
+      .all()
     let wins = 0, losses = 0, draws = 0
-    for (const game of allGames) {
+    for (const game of botGames) {
       const isWhite = game.whiteBotId === botId
-      const isBlack = game.blackBotId === botId
-      if (!isWhite && !isBlack) continue
       if (game.result === '1-0') isWhite ? wins++ : losses++
-      else if (game.result === '0-1') isBlack ? wins++ : losses++
+      else if (game.result === '0-1') isWhite ? losses++ : wins++
       else draws++
     }
 
@@ -120,9 +110,10 @@ export class DashboardService {
       }
     } catch { /* ML probe failed, non-critical */ }
 
-    const handState = this.getHandState(botId)
+    const cardService = new CardService(this.db)
+    const handState = this.getHandStateWith(cardService, botId)
     const ladderState = this.getLadderState(botId)
-    const streak = new CardService(this.db).getWinStreak(botId)
+    const streak = cardService.getWinStreak(botId)
     const championship = this.getChampionshipState(botId)
     const contextCues = this.generateContextCues(bot, handState, ladderState)
 
@@ -215,8 +206,12 @@ export class DashboardService {
 
   private getChampionshipState(botId: number) {
     try {
-      const championshipService = new ChampionshipService(this.db, null as any) // pool not needed for read-only
-      const activeBout = championshipService.getActiveBout(botId)
+      const activeBout = this.db.select().from(championshipBouts)
+        .where(and(
+          eq(championshipBouts.botId, botId),
+          eq(championshipBouts.status, 'active'),
+        ))
+        .get() ?? null
       if (!activeBout) return null
       return {
         id: activeBout.id,
@@ -255,9 +250,8 @@ export class DashboardService {
     return null
   }
 
-  private getHandState(botId: number) {
+  private getHandStateWith(cardService: CardService, botId: number) {
     try {
-      const cardService = new CardService(this.db)
       return cardService.getHandState(botId)
     } catch {
       return null

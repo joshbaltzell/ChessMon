@@ -46,18 +46,19 @@ export const botIdParamSchema = z.object({
 })
 
 // --- Training ---
-export const sparSchema = z.object({
-  opponent: z.enum(['system', 'player']),
-  opponent_level: z.number().int().min(1).max(20).optional(),
+const systemSparSchema = z.object({
+  opponent: z.literal('system'),
+  opponent_level: z.number().int().min(1).max(20),
   opponent_bot_id: z.number().int().positive().optional(),
-}).refine(
-  (data) => {
-    if (data.opponent === 'system') return data.opponent_level !== undefined
-    if (data.opponent === 'player') return data.opponent_bot_id !== undefined
-    return true
-  },
-  { message: 'System opponents need opponent_level, player opponents need opponent_bot_id' },
-)
+})
+
+const playerSparSchema = z.object({
+  opponent: z.literal('player'),
+  opponent_level: z.number().int().min(1).max(20).optional(),
+  opponent_bot_id: z.number().int().positive(),
+})
+
+export const sparSchema = z.discriminatedUnion('opponent', [systemSparSchema, playerSparSchema])
 
 export const tacticKeySchema = z.object({
   tactic_key: z.string().min(1, 'tactic_key is required'),

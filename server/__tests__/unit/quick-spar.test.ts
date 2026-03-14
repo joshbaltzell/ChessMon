@@ -229,8 +229,8 @@ describe('quickSpar', () => {
 
     const result = await trainingService.quickSpar(1)
 
-    expect(mockAddEnergy).toHaveBeenCalledWith(1, 1)
-    expect(mockAddEnergy).toHaveBeenCalledWith(1, 2)
+    // Energy is now consolidated into a single addEnergy call
+    expect(mockAddEnergy).toHaveBeenCalledWith(1, 3)
     expect(result.energyEarned).toBe(3)
   })
 
@@ -261,9 +261,10 @@ describe('quickSpar', () => {
 
     const result = await trainingService.quickSpar(1)
 
+    // Energy is now consolidated into a single addEnergy call (base 1 + loot 1 = 2)
     expect(result.energyEarned).toBeGreaterThanOrEqual(2)
-    const addEnergyCalls = mockAddEnergy.mock.calls
-    expect(addEnergyCalls.length).toBeGreaterThanOrEqual(2)
+    expect(mockAddEnergy).toHaveBeenCalledTimes(1)
+    expect(mockAddEnergy.mock.calls[0][1]).toBeGreaterThanOrEqual(2)
   })
 
   it('should train ML with 6 epochs', async () => {
