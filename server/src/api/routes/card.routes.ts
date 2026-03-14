@@ -44,6 +44,14 @@ export function createCardRoutes(pool: StockfishPool) {
       return cardService.drawHand(botId)
     })
 
+    // POST /bots/:id/hand/new-round — refresh hand (preserves energy)
+    app.post('/bots/:id/hand/new-round', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
+      const { playerId } = request.user
+      verifyOwnership(botId, playerId)
+      return cardService.refreshHand(botId)
+    })
+
     // POST /bots/:id/hand/play — play a card from hand
     app.post('/bots/:id/hand/play', { onRequest: [app.authenticate] }, async (request, reply) => {
       const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
@@ -72,7 +80,7 @@ export function createCardRoutes(pool: StockfishPool) {
           case 'power_spar': {
             const oppLevel = body.opponent_level || 1
             effect = await sparLimiter.run(() =>
-              trainingService.cardSpar(botId, oppLevel, 2) // 2x XP multiplier
+              trainingService.cardSpar(botId, oppLevel, 4) // 4x XP multiplier
             )
             // Check if this was a ladder opponent and bot won
             checkLadderDefeat(botId, oppLevel, effect)
@@ -119,12 +127,21 @@ export function createCardRoutes(pool: StockfishPool) {
             break
           }
           case 'scout': {
-            // Return info about potential opponents near bot level
-            const bot = botService.getById(botId)
-            effect = {
-              action: 'scout_info',
-              botLevel: bot?.level ?? 1,
-              message: `Your bot is level ${bot?.level}. The next challenger awaits!`,
+            const scoutInfo = ladderService.getScoutInfo(botId)
+            if (scoutInfo) {
+              effect = {
+                action: 'scout_info',
+                name: scoutInfo.name,
+                level: scoutInfo.level,
+                weakness: scoutInfo.weakness,
+                scoutText: scoutInfo.scoutText,
+                playStyleHint: scoutInfo.playStyleHint,
+              }
+            } else {
+              effect = {
+                action: 'scout_info',
+                message: 'No opponent to scout right now.',
+              }
             }
             break
           }
@@ -154,6 +171,57 @@ export function createCardRoutes(pool: StockfishPool) {
       return ladderService.getLadderState(botId)
     })
 
+    // POST /bots/:id/boss-fight — free fight against next ladder opponent
+    app.post('/bots/:id/boss-fight', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
+      const { playerId } = request.user
+      verifyOwnership(botId, playerId)
+
+      // Get next undefeated ladder opponent
+      const nextOppLevel = ladderService.getNextOpponentLevel(botId)
+      if (nextOppLevel === null) {
+        return reply.status(400).send({ error: 'No ladder opponent to fight. Ladder may be complete.', code: 'NO_OPPONENT' })
+      }
+
+      try {
+        // Run game (1x XP, free — no energy)
+        const result = await sparLimiter.run(() =>
+          trainingService.cardSpar(botId, nextOppLevel, 1)
+        )
+
+        // Check if bot won
+        const botWon = (result.game.result === '1-0' && result.game.botPlayedWhite) ||
+                       (result.game.result === '0-1' && !result.game.botPlayedWhite)
+
+        if (botWon) {
+          // Mark ladder opponent as defeated
+          const ladder = ladderService.getLadderState(botId)
+          if (ladder) {
+            const opponent = ladder.opponents.find(o => !o.defeated && o.level === nextOppLevel)
+            if (opponent) {
+              ladderService.defeatOpponent(botId, opponent.index, result.game.id)
+            }
+          }
+        } else {
+          // Boss loss: +3 energy consolation
+          cardService.addEnergy(botId, 3)
+        }
+
+        // Get advice for losses
+        const bossLossAdvice = botWon ? null : ladderService.getBossLossAdvice(botId)
+
+        return {
+          ...result,
+          bossFight: true,
+          botWon,
+          bossLossAdvice,
+          ladderState: ladderService.getLadderState(botId),
+        }
+      } catch (err: any) {
+        throw err
+      }
+    })
+
     // Helper: check if spar defeated a ladder opponent
     function checkLadderDefeat(botId: number, oppLevel: number, effect: any) {
       if (!effect?.game) return
@@ -167,7 +235,7 @@ export function createCardRoutes(pool: StockfishPool) {
       // Find the next undefeated opponent matching this level
       const opponent = ladder.opponents.find(o => !o.defeated && o.level === oppLevel)
       if (opponent) {
-        ladderService.defeatOpponent(botId, opponent.index, effect.game?.gameRecordId || 0)
+        ladderService.defeatOpponent(botId, opponent.index, effect.game?.id || 0)
       }
     }
   }
