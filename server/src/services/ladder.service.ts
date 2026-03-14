@@ -5,7 +5,7 @@ import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
 const rawData = require('../data/system-bots.json') as {
-  systemBots: Array<{ level: number; name: string; elo: number; description?: string }>
+  systemBots: Array<{ level: number; name: string; elo: number; description?: string; weakness?: string; scoutText?: string; playStyleHint?: string }>
 }
 const systemBotsData = rawData.systemBots
 
@@ -175,6 +175,47 @@ export class LadderService {
     if (!state || state.allDefeated) return null
     const next = state.opponents.find(o => !o.defeated)
     return next?.level ?? null
+  }
+
+  /**
+   * Get scout info about the next undefeated ladder opponent.
+   */
+  getScoutInfo(botId: number): { name: string; level: number; weakness: string; scoutText: string; playStyleHint: string } | null {
+    const ladder = this.getLadderState(botId)
+    if (!ladder) return null
+    const nextOpp = ladder.opponents.find(o => !o.defeated)
+    if (!nextOpp) return null
+    const systemBot = this.getSystemBot(nextOpp.level)
+    return {
+      name: nextOpp.name,
+      level: nextOpp.level,
+      weakness: systemBot?.weakness || 'No known weakness',
+      scoutText: systemBot?.scoutText || 'No intel available.',
+      playStyleHint: systemBot?.playStyleHint || 'Unknown play style.',
+    }
+  }
+
+  /**
+   * Returns training suggestion based on the current ladder opponent's weakness.
+   * Used for boss loss feedback UI.
+   */
+  getBossLossAdvice(botId: number): { weakness: string; suggestedCard: string; suggestedAction: string } | null {
+    const scoutInfo = this.getScoutInfo(botId)
+    if (!scoutInfo) return null
+    const suggestion = this.mapWeaknessToCard(scoutInfo.weakness)
+    return {
+      weakness: scoutInfo.weakness,
+      suggestedCard: suggestion.card,
+      suggestedAction: suggestion.action,
+    }
+  }
+
+  private mapWeaknessToCard(weakness: string): { card: string; action: string } {
+    if (weakness.toLowerCase().includes('opening')) return { card: 'Study', action: 'Learn a new opening tactic' }
+    if (weakness.toLowerCase().includes('endgame')) return { card: 'Drill', action: 'Drill your endgame tactics' }
+    if (weakness.toLowerCase().includes('tactical') || weakness.toLowerCase().includes('fork') || weakness.toLowerCase().includes('pin'))
+      return { card: 'Drill', action: 'Drill tactical defense patterns' }
+    return { card: 'Spar', action: 'Keep training with more spars' }
   }
 
   private getSystemBot(level: number) {
