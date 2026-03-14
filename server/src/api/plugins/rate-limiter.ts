@@ -91,3 +91,7 @@ export const rateLimitAuth = rejectIfLimited(authLimiter, 'auth')
 export const rateLimitHeavy = rejectIfLimited(heavyOpLimiter, 'heavy')
 export const rateLimitPlay = rejectIfLimited(playLimiter, 'play')
 export const rateLimitGeneral = rejectIfLimited(generalLimiter, 'general')
+
+// Quick spar: 1 request per second per bot (fast but not spammable)
+const quickSparLimiter = new RateLimiter(1, 1000)
+export const rateLimitQuickSpar = rejectIfLimited(quickSparLimiter, 'qspar')
