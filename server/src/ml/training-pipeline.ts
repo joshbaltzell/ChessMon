@@ -239,6 +239,7 @@ export async function trainBotFromGame(
   botColor: 'w' | 'b',
   botAttributes: BotAttributes,
   existingReplayBuffer?: Buffer | null,
+  options?: { epochs?: number },
 ): Promise<TrainingResult & { updatedReplayBuffer: Buffer }> {
   const newSamples = labelPositions(positions, result, botColor, botAttributes)
 
@@ -268,7 +269,7 @@ export async function trainBotFromGame(
   }
 
   const model = await getOrCreateModel(db, botId, botAttributes.alignmentAttack, botAttributes.alignmentStyle)
-  const trainingResult = await model.train(trainingSamples)
+  const trainingResult = await model.train(trainingSamples, options?.epochs)
 
   await saveModel(db, botId, model)
 
