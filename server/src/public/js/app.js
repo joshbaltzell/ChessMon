@@ -258,6 +258,15 @@ async function refreshDashboard() {
   // Show context banner
   updateContextBanner(d);
 
+  // Show overnight report (once per session)
+  if (d.overnightReport && !window._overnightShown) {
+    window._overnightShown = true;
+    showOvernightReport(d.overnightReport);
+  }
+
+  // Render daily quests
+  renderDailyQuests(d.dailyQuests, d.streakInfo);
+
   // Update replay button
   const replayBtn = document.getElementById('lastSparReplayBtn');
   if (replayBtn) {
@@ -771,6 +780,63 @@ function showQuickSparResult(r) {
       loot: r.loot,
     });
   }
+}
+
+// ===================================================================
+// Overnight Report & Daily Quests
+// ===================================================================
+function showOvernightReport(report) {
+  if (!report || !report.fights || report.fights.length === 0) return;
+
+  const wins = report.fights.filter(f => f.result === 'win').length;
+  const losses = report.fights.filter(f => f.result === 'loss').length;
+  const draws = report.fights.length - wins - losses;
+
+  log(`\uD83C\uDF05 Morning Briefing: Your bot fought ${report.fights.length} matches while you were away (${report.hoursAway}h)`, 'info');
+  log(`   Record: ${wins}W ${losses}L ${draws}D | Elo: ${report.totalEloChange >= 0 ? '+' : ''}${report.totalEloChange} | XP: +${report.totalXpGained}`, report.totalEloChange >= 0 ? 'win' : 'loss');
+
+  // Show individual fights
+  report.fights.forEach(f => {
+    const icon = f.result === 'win' ? '\u2705' : f.result === 'loss' ? '\u274C' : '\u2796';
+    log(`   ${icon} vs ${f.opponent} (Lv.${f.opponentLevel}): ${f.result} (${f.eloChange >= 0 ? '+' : ''}${f.eloChange} Elo)`, 'dim');
+  });
+}
+
+function renderDailyQuests(quests, streakInfo) {
+  const container = document.getElementById('dailyQuestsArea');
+  if (!container) return;
+
+  if (!quests || quests.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let streakHtml = '';
+  if (streakInfo) {
+    const reward = streakInfo.reward ? ` (+${streakInfo.reward.amount} energy)` : '';
+    streakHtml = `<div class="quest-streak">\uD83D\uDD25 Day ${streakInfo.streak} streak${reward}</div>`;
+  }
+
+  const questsHtml = quests.map(q => {
+    const progress = Math.min(100, Math.round((q.currentCount / q.targetCount) * 100));
+    const doneClass = q.completed ? ' quest-done' : '';
+    const checkmark = q.completed ? ' \u2705' : '';
+    return `
+      <div class="quest-item${doneClass}">
+        <div class="quest-desc">${escHtml(q.description)}${checkmark}</div>
+        <div class="quest-bar"><div class="quest-fill" style="width:${progress}%"></div></div>
+        <div class="quest-progress">${q.currentCount}/${q.targetCount} \u2014 +${q.rewardAmount} ${q.rewardType}</div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="daily-quests-panel">
+      <div class="quest-title">\uD83D\uDCCB Daily Quests</div>
+      ${streakHtml}
+      ${questsHtml}
+    </div>
+  `;
 }
 
 // ===================================================================

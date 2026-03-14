@@ -267,3 +267,88 @@
     max-height: 85vh;
   }
 }
+
+/* =============================================================
+   DAILY QUESTS
+   ============================================================= */
+.daily-quests-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+}
+
+.daily-quests-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.quest-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.quest-item:last-child {
+  border-bottom: none;
+}
+
+.quest-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.quest-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.quest-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.quest-fill {
+  height: 100%;
+  background: var(--neon-cyan);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.quest-done .quest-fill {
+  background: var(--green);
+}
+
+.quest-progress {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.quest-done .quest-title {
+  color: var(--green);
+}
+
+.quest-done .quest-title::after {
+  content: ' ✓';
+}
+
+.quest-streak {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-top: 8px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--neon-yellow);
+}

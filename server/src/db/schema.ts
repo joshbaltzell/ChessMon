@@ -29,6 +29,10 @@ export const bots = sqliteTable('bots', {
   trainingPointsRemaining: integer('training_points_remaining').notNull().default(10),
   nextFreeSparAt: integer('next_free_spar_at', { mode: 'timestamp' }),
   sparTimerSeconds: integer('spar_timer_seconds').notNull().default(300),
+  lastActivityAt: integer('last_activity_at', { mode: 'timestamp' }),
+  autoFightResultsJson: text('auto_fight_results_json').notNull().default('[]'),
+  dailyCheckInStreak: integer('daily_check_in_streak').notNull().default(0),
+  lastCheckInDate: text('last_check_in_date'),
   mlWeightsBlob: blob('ml_weights_blob', { mode: 'buffer' }),
   mlReplayBuffer: blob('ml_replay_buffer', { mode: 'buffer' }),
   asciiTier: integer('ascii_tier').notNull().default(1),
@@ -129,4 +133,17 @@ export const playSessions = sqliteTable('play_sessions', {
   result: text('result'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
+export const dailyQuests = sqliteTable('daily_quests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  botId: integer('bot_id').notNull().references(() => bots.id),
+  date: text('date').notNull(), // YYYY-MM-DD
+  questType: text('quest_type').notNull(), // 'win_spars', 'use_prep_cards', 'earn_xp', 'beat_boss', 'win_streak', 'pilot_win', 'play_cards', 'gain_elo'
+  targetCount: integer('target_count').notNull(),
+  currentCount: integer('current_count').notNull().default(0),
+  completed: integer('completed').notNull().default(0), // 0 or 1
+  rewardType: text('reward_type').notNull(), // 'energy', 'card'
+  rewardAmount: integer('reward_amount').notNull().default(2),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })

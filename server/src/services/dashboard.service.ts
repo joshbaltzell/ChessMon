@@ -9,6 +9,8 @@ import { loadModel } from '../ml/model-store.js'
 import { probeStyle, type StyleProfile } from '../ml/style-probe.js'
 import { CardService } from './card.service.js'
 import { LadderService } from './ladder.service.js'
+import { processAbsence, type AbsenceReport } from './auto-fight.service.js'
+import { DailyQuestService } from './daily-quest.service.js'
 
 const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
 const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
@@ -115,6 +117,18 @@ export class DashboardService {
     const ladderState = this.getLadderState(botId)
     const streak = cardService.getWinStreak(botId)
     const championship = this.getChampionshipState(botId)
+
+    // Process autonomous fights while away
+    let overnightReport: AbsenceReport | null = null
+    try {
+      overnightReport = processAbsence(this.db, botId)
+    } catch { /* non-critical */ }
+
+    // Daily quests and streak
+    const dailyQuestService = new DailyQuestService(this.db)
+    const dailyQuests = dailyQuestService.getDailyQuests(botId)
+    const streakInfo = dailyQuestService.getStreakInfo(botId)
+
     const contextCues = this.generateContextCues(bot, handState, ladderState)
 
     return {
@@ -192,6 +206,9 @@ export class DashboardService {
       streak,
       championship,
       contextCues,
+      overnightReport,
+      dailyQuests,
+      streakInfo,
     }
   }
 

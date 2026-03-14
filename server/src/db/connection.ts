@@ -149,6 +149,19 @@ export function initializeDb(dbPath?: string) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS daily_quests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bot_id INTEGER NOT NULL REFERENCES bots(id),
+      date TEXT NOT NULL,
+      quest_type TEXT NOT NULL,
+      target_count INTEGER NOT NULL,
+      current_count INTEGER NOT NULL DEFAULT 0,
+      completed INTEGER NOT NULL DEFAULT 0,
+      reward_type TEXT NOT NULL,
+      reward_amount INTEGER NOT NULL DEFAULT 2,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     CREATE INDEX IF NOT EXISTS idx_bots_player_id ON bots(player_id);
     CREATE INDEX IF NOT EXISTS idx_bots_elo ON bots(elo);
     CREATE INDEX IF NOT EXISTS idx_bots_level ON bots(level);
@@ -161,6 +174,10 @@ export function initializeDb(dbPath?: string) {
   try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN active_powerups_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
   try { rawDb.exec(`ALTER TABLE bots ADD COLUMN next_free_spar_at INTEGER`) } catch {}
   try { rawDb.exec(`ALTER TABLE bots ADD COLUMN spar_timer_seconds INTEGER NOT NULL DEFAULT 300`) } catch {}
+  try { rawDb.exec(`ALTER TABLE bots ADD COLUMN last_activity_at INTEGER`) } catch {}
+  try { rawDb.exec(`ALTER TABLE bots ADD COLUMN auto_fight_results_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
+  try { rawDb.exec(`ALTER TABLE bots ADD COLUMN daily_check_in_streak INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { rawDb.exec(`ALTER TABLE bots ADD COLUMN last_check_in_date TEXT`) } catch {}
 
   return database
 }

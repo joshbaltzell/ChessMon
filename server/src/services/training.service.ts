@@ -751,6 +751,16 @@ export class TrainingService {
       }),
     }).run()
 
+    // Increment daily quests
+    try {
+      const { DailyQuestService } = await import('./daily-quest.service.js')
+      const questService = new DailyQuestService(this.db)
+      if (botWon) questService.incrementQuest(botId, 'win_spars', 1)
+      questService.incrementQuest(botId, 'earn_xp', xpGained)
+      if (eloChange > 0) questService.incrementQuest(botId, 'gain_elo', eloChange)
+      if (streak >= 3) questService.incrementQuest(botId, 'win_streak', 1)
+    } catch { /* non-critical */ }
+
     // Emotion + recap
     const emotion = generateEmotionResponse(
       outcome, 'spar',

@@ -144,6 +144,16 @@ export function createCardRoutes(pool: StockfishPool) {
             effect = { action: 'unknown' }
         }
 
+        // Increment daily quest for card plays
+        try {
+          const { DailyQuestService } = await import('../../services/daily-quest.service.js')
+          const questService = new DailyQuestService(db)
+          questService.incrementQuest(botId, 'play_cards', 1)
+          if (card.category === 'preparation') {
+            questService.incrementQuest(botId, 'use_prep_cards', 1)
+          }
+        } catch { /* non-critical */ }
+
         return { card, hand, effect }
       } catch (err: any) {
         if (err.statusCode) {
