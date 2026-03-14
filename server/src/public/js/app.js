@@ -5,6 +5,8 @@
 const API = '/api/v1';
 let token = null;
 let currentBotId = null;
+let sparInProgress = false;
+let previousElo = null;
 
 // Store last dashboard data globally for hand.js access
 window._lastDashboard = null;
@@ -186,6 +188,33 @@ async function refreshDashboard() {
   // Render ladder if available
   if (typeof renderLadder === 'function') {
     renderLadder(d);
+  }
+
+  // Show quick spar area when dashboard is visible
+  const quickSparArea = document.getElementById('quickSparArea');
+  if (quickSparArea) quickSparArea.classList.remove('hidden');
+
+  // Update streak display
+  const streakEl = document.getElementById('streakDisplay');
+  if (streakEl) {
+    if (d.streak >= 3) {
+      streakEl.innerHTML = `🔥 Streak: ${d.streak}x`;
+      streakEl.classList.add('hot-streak');
+    } else if (d.streak > 0) {
+      streakEl.innerHTML = `Streak: ${d.streak}x`;
+      streakEl.classList.remove('hot-streak');
+    } else {
+      streakEl.innerHTML = '';
+      streakEl.classList.remove('hot-streak');
+    }
+  }
+
+  // Track elo for milestone detection
+  if (previousElo === null) previousElo = d.stats.elo;
+
+  // Show context cue
+  if (d.contextCues) {
+    log(d.contextCues.text, 'info');
   }
 
   const acts = document.getElementById('dashActions');
@@ -469,6 +498,89 @@ async function doSpar(opponentLevel) {
 }
 
 // ===================================================================
+// Quick Spar
+// ===================================================================
+async function doQuickSpar() {
+  if (sparInProgress) return;
+  sparInProgress = true;
+  disableActions('Quick Spar...');
+  try {
+    const r = await api('POST', `/bots/${currentBotId}/quick-spar`);
+    showQuickSparResult(r);
+    await refreshDashboard();
+  } catch(e) {
+    log('Quick Spar failed: ' + e.message, 'loss');
+  } finally {
+    sparInProgress = false;
+    enableActions();
+  }
+}
+
+function showQuickSparResult(r) {
+  const res = r.game.result;
+  const botWon = (res === '1-0' && r.game.botPlayedWhite) || (res === '0-1' && !r.game.botPlayedWhite);
+  const botLost = (res === '1-0' && !r.game.botPlayedWhite) || (res === '0-1' && r.game.botPlayedWhite);
+  const cls = botWon ? 'win' : botLost ? 'loss' : 'draw';
+  const won = botWon ? 'WON' : botLost ? 'LOST' : 'DREW';
+
+  log(`⚔️ Quick Spar: ${won} in ${r.game.moveCount} moves (Elo ${r.eloChange >= 0 ? '+' : ''}${r.eloChange}, +${r.xpGained} XP, +${r.energyEarned} energy)`, cls);
+
+  // Show key moments
+  if (r.keyMoments && r.keyMoments.length > 0) {
+    r.keyMoments.slice(0, 2).forEach(m => {
+      log(`  Move ${m.moveNumber}: ${m.move} — ${m.type}`, 'dim');
+    });
+  }
+
+  // Show loot
+  if (r.loot && r.loot.type !== 'none') {
+    switch (r.loot.type) {
+      case 'insight': log(`💡 Insight: "${r.loot.data.message}"`, 'info'); break;
+      case 'energy': log(`⚡ Bonus energy: +${r.loot.data.amount}`, 'info'); break;
+      case 'card': log(`🃏 Card drop: ${r.loot.data.card?.name || 'New card added!'}`, 'info'); break;
+      case 'intel': log(`🔍 Boss Intel: ${r.loot.data.scoutText || 'Intel gathered!'}`, 'info'); break;
+    }
+  }
+
+  // Show streak
+  if (r.streak >= 3) {
+    log(`🔥 Win streak: ${r.streak}x (+2 bonus energy!)`, 'info');
+  } else if (r.streak > 0 && botWon) {
+    log(`Streak: ${r.streak}x`, 'dim');
+  }
+
+  // Show emotion
+  if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
+
+  // Store PGN for replay
+  if (r.game && r.game.pgn) {
+    lastSparPgn = r.game.pgn;
+  }
+
+  // Elo milestone detection
+  if (previousElo !== null) {
+    const oldMilestone = Math.floor(previousElo / 50);
+    const newMilestone = Math.floor(r.newElo / 50);
+    if (newMilestone > oldMilestone) {
+      log(`🏅 Elo milestone: ${newMilestone * 50}!`, 'info');
+    }
+  }
+  previousElo = r.newElo;
+
+  // Show splash
+  if (typeof showSplash === 'function') {
+    showSplash({
+      type: botWon ? 'victory' : botLost ? 'defeat' : 'draw',
+      title: botWon ? 'VICTORY!' : botLost ? 'DEFEAT' : 'DRAW',
+      subtitle: `Quick Spar vs ${r.game.opponent}`,
+      stats: { elo: r.eloChange, xp: r.xpGained, energy: r.energyEarned, moves: r.game.moveCount },
+      emotion: r.emotion,
+      loot: r.loot,
+    });
+  }
+}
+
+// ===================================================================
 // Tactic shop
 // ===================================================================
 const CATEGORY_LABELS = {
@@ -486,7 +598,7 @@ async function showTacticShop() {
   try {
     const tactics = await api('GET', '/catalog/tactics');
     const dash = await api('GET', `/bots/${currentBotId}/dashboard`);
-    const owned = new Set((dash.tactics || []).map(t => t.tacticKey));
+    const owned = new Set((dash.tactics || []).map(t => t.key));
     const botLevel = dash.stats.level;
     const pts = dash.training.pointsRemaining;
 

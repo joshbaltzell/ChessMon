@@ -222,3 +222,40 @@
   width: 100%;
   height: 100%;
 }
+
+/* Quick Spar */
+.quick-spar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-quick-spar {
+  background: var(--neon-green);
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-quick-spar:hover {
+  background: var(--neon-blue);
+  transform: scale(1.05);
+}
+.btn-quick-spar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.streak-display {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  transition: all 0.3s;
+}
+.streak-display.hot-streak {
+  color: var(--neon-orange);
+  font-weight: bold;
+  text-shadow: 0 0 8px var(--neon-orange);
+}
