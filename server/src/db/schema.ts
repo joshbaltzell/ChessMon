@@ -87,6 +87,19 @@ export const cardHands = sqliteTable('card_hands', {
   maxEnergy: integer('max_energy').notNull(),
   handJson: text('hand_json').notNull().default('[]'), // JSON array of card objects
   cardsPlayedThisRound: integer('cards_played_this_round').notNull().default(0),
+  winStreak: integer('win_streak').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
+export const championshipBouts = sqliteTable('championship_bouts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  botId: integer('bot_id').notNull().references(() => bots.id),
+  targetLevel: integer('target_level').notNull(),
+  gamesPlayed: integer('games_played').notNull().default(0),
+  gamesWon: integer('games_won').notNull().default(0),
+  currentRound: integer('current_round').notNull().default(1),
+  status: text('status').notNull().default('active'),
+  gameRecordIdsJson: text('game_record_ids_json').notNull().default('[]'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 

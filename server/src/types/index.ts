@@ -73,6 +73,7 @@ export interface CardDefinition {
   icon: string
   description: string
   flavor: string
+  unlockedAtLevel: number
 }
 
 export interface HandCard {
@@ -93,4 +94,21 @@ export interface HandState {
   maxEnergy: number
   roundNumber: number
   cardsPlayed: number
+}
+
+// --- Loot & Championship ---
+export interface LootResult {
+  type: 'none' | 'insight' | 'energy' | 'card' | 'intel'
+  data: any
+}
+
+export interface ChampionshipBout {
+  id: number
+  botId: number
+  targetLevel: number
+  gamesPlayed: number
+  gamesWon: number
+  currentRound: number
+  status: 'active' | 'won' | 'lost'
+  gameRecordIds: number[]
 }

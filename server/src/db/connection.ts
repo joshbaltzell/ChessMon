@@ -107,6 +107,19 @@ export function initializeDb(dbPath?: string) {
       max_energy INTEGER NOT NULL,
       hand_json TEXT NOT NULL DEFAULT '[]',
       cards_played_this_round INTEGER NOT NULL DEFAULT 0,
+      win_streak INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS championship_bouts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bot_id INTEGER NOT NULL REFERENCES bots(id),
+      target_level INTEGER NOT NULL,
+      games_played INTEGER NOT NULL DEFAULT 0,
+      games_won INTEGER NOT NULL DEFAULT 0,
+      current_round INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'won', 'lost')),
+      game_record_ids_json TEXT NOT NULL DEFAULT '[]',
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
@@ -139,6 +152,9 @@ export function initializeDb(dbPath?: string) {
     CREATE INDEX IF NOT EXISTS idx_bots_level ON bots(level);
     CREATE INDEX IF NOT EXISTS idx_game_records_context ON game_records(context);
   `)
+
+  // Migration for existing DBs: add win_streak column to card_hands
+  try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN win_streak INTEGER NOT NULL DEFAULT 0`) } catch {}
 
   return database
 }

@@ -1,14 +1,14 @@
 {
   "cards": [
-    { "key": "spar", "name": "Spar", "energy": 2, "count": 6, "type": "combat", "color": "#ff2d8a", "icon": "⚔️", "description": "Fight a system bot. Runs full spar with ML training.", "flavor": "Step into the ring!" },
-    { "key": "drill", "name": "Drill", "energy": 1, "count": 5, "type": "training", "color": "#00ff88", "icon": "🎯", "description": "Practice an owned tactic (+15 proficiency).", "flavor": "Repetition breeds mastery." },
-    { "key": "study", "name": "Study", "energy": 3, "count": 3, "type": "knowledge", "color": "#b44aff", "icon": "📖", "description": "Purchase a tactic from the shop.", "flavor": "Knowledge is power." },
-    { "key": "analyze", "name": "Analyze", "energy": 1, "count": 4, "type": "insight", "color": "#00d4ff", "icon": "🧠", "description": "Peek at bot brain (opens ML insights).", "flavor": "What does the neural net see?" },
-    { "key": "focus", "name": "Focus", "energy": 0, "count": 3, "type": "utility", "color": "#ffd700", "icon": "✨", "description": "+1 energy this round.", "flavor": "Channel your inner strength." },
-    { "key": "challenge", "name": "Challenge", "energy": 0, "count": 2, "type": "combat", "color": "#ff6b2d", "icon": "🎮", "description": "Play vs your own bot (free).", "flavor": "The ultimate sparring partner." },
-    { "key": "rest", "name": "Rest", "energy": 0, "count": 2, "type": "utility", "color": "#6a6a8a", "icon": "💤", "description": "Discard hand, draw 7 new cards.", "flavor": "Fresh cards, fresh start." },
-    { "key": "power_spar", "name": "Power Spar", "energy": 3, "count": 2, "type": "combat", "color": "#ff2d8a", "icon": "💥", "description": "Spar with 2x XP reward.", "flavor": "Double or nothing!" },
-    { "key": "deep_drill", "name": "Deep Drill", "energy": 2, "count": 2, "type": "training", "color": "#00ff88", "icon": "⛏️", "description": "Drill with +30 proficiency instead of +15.", "flavor": "Dig deeper." },
-    { "key": "scout", "name": "Scout", "energy": 1, "count": 3, "type": "insight", "color": "#00d4ff", "icon": "🔍", "description": "Preview next opponent's strengths.", "flavor": "Know thy enemy." }
+    { "key": "spar", "name": "Spar", "energy": 2, "count": 6, "type": "combat", "color": "#ff2d8a", "icon": "⚔️", "description": "Fight a system bot. Runs full spar with ML training.", "flavor": "Step into the ring!", "unlockedAtLevel": 1 },
+    { "key": "drill", "name": "Drill", "energy": 1, "count": 5, "type": "training", "color": "#00ff88", "icon": "🎯", "description": "Practice an owned tactic (+15 proficiency).", "flavor": "Repetition breeds mastery.", "unlockedAtLevel": 2 },
+    { "key": "study", "name": "Study", "energy": 3, "count": 3, "type": "knowledge", "color": "#b44aff", "icon": "📖", "description": "Purchase a tactic from the shop.", "flavor": "Knowledge is power.", "unlockedAtLevel": 3 },
+    { "key": "analyze", "name": "Analyze", "energy": 1, "count": 4, "type": "insight", "color": "#00d4ff", "icon": "🧠", "description": "Peek at bot brain (opens ML insights).", "flavor": "What does the neural net see?", "unlockedAtLevel": 5 },
+    { "key": "focus", "name": "Focus", "energy": 0, "count": 3, "type": "utility", "color": "#ffd700", "icon": "✨", "description": "+1 energy this round.", "flavor": "Channel your inner strength.", "unlockedAtLevel": 1 },
+    { "key": "challenge", "name": "Challenge", "energy": 0, "count": 2, "type": "combat", "color": "#ff6b2d", "icon": "🎮", "description": "Play vs your own bot (free).", "flavor": "The ultimate sparring partner.", "unlockedAtLevel": 5 },
+    { "key": "rest", "name": "Rest", "energy": 0, "count": 2, "type": "utility", "color": "#6a6a8a", "icon": "💤", "description": "Discard hand, draw 7 new cards.", "flavor": "Fresh cards, fresh start.", "unlockedAtLevel": 1 },
+    { "key": "power_spar", "name": "Power Spar", "energy": 3, "count": 2, "type": "combat", "color": "#ff2d8a", "icon": "💥", "description": "Spar with 2x XP reward.", "flavor": "Double or nothing!", "unlockedAtLevel": 4 },
+    { "key": "deep_drill", "name": "Deep Drill", "energy": 2, "count": 2, "type": "training", "color": "#00ff88", "icon": "⛏️", "description": "Drill with +30 proficiency instead of +15.", "flavor": "Dig deeper.", "unlockedAtLevel": 4 },
+    { "key": "scout", "name": "Scout", "energy": 1, "count": 3, "type": "insight", "color": "#00d4ff", "icon": "🔍", "description": "Preview next opponent's strengths.", "flavor": "Know thy enemy.", "unlockedAtLevel": 3 }
   ]
 }

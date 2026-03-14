@@ -4,31 +4,46 @@
       "level": 1,
       "name": "Pawn Pusher",
       "description": "A beginner bot that pushes pawns forward eagerly",
-      "elo": 400
+      "elo": 400,
+      "weakness": "Any coordinated piece play",
+      "scoutText": "This opponent only pushes pawns early. Develop your pieces and you'll win.",
+      "playStyleHint": "Extremely predictable opening moves."
     },
     {
       "level": 2,
       "name": "Knight Hopper",
       "description": "Loves jumping knights around the board",
-      "elo": 500
+      "elo": 500,
+      "weakness": "Strong positional play and center control",
+      "scoutText": "This opponent loves surprise knight attacks. Control the center to limit its knights.",
+      "playStyleHint": "Aggressively develops knights, loves forks."
     },
     {
       "level": 3,
       "name": "Bishop Slider",
       "description": "Prefers diagonal play with bishops",
-      "elo": 600
+      "elo": 600,
+      "weakness": "Solid opening repertoire neutralizes diagonal pressure",
+      "scoutText": "This opponent pins pieces to your king. Learn solid openings to counter.",
+      "playStyleHint": "Strong diagonal play, uses pins and skewers."
     },
     {
       "level": 4,
       "name": "Rook Roller",
       "description": "Opens files for rook play",
-      "elo": 700
+      "elo": 700,
+      "weakness": "Aggressive openings that create early pressure",
+      "scoutText": "This opponent wants a long game. Attack early before it can consolidate.",
+      "playStyleHint": "Plays conservatively, trades down to endgames."
     },
     {
       "level": 5,
       "name": "Castle Guard",
       "description": "Always castles early and defends the king",
-      "elo": 800
+      "elo": 800,
+      "weakness": "Well-rounded training across all attributes",
+      "scoutText": "This opponent studies YOU. Only a well-rounded bot can win.",
+      "playStyleHint": "Adapts strategy based on your bot's weaknesses."
     },
     {
       "level": 6,
