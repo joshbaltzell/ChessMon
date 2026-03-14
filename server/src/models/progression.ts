@@ -38,3 +38,25 @@ export const DRILL_COST = 1
 export const BONUS_POINTS_ON_FAILURE = 5
 export const XP_PER_SPAR = 20
 export const XP_PER_LEVEL_TEST = 50
+
+export const QUICK_SPAR_XP: Record<number, { win: number; loss: number }> = {
+  1: { win: 15, loss: 5 },
+  2: { win: 18, loss: 6 },
+  3: { win: 20, loss: 7 },
+  4: { win: 22, loss: 8 },
+  5: { win: 25, loss: 9 },
+}
+
+export function getXpForSpar(
+  level: number,
+  outcome: 'win' | 'loss' | 'draw',
+  multiplier: number = 1,
+): number {
+  const effectiveLevel = Math.min(level, 5)
+  const xpEntry = QUICK_SPAR_XP[effectiveLevel] || QUICK_SPAR_XP[5]
+  let baseXp: number
+  if (outcome === 'win') baseXp = xpEntry.win
+  else if (outcome === 'loss') baseXp = xpEntry.loss
+  else baseXp = Math.round((xpEntry.win + xpEntry.loss) / 2)
+  return baseXp * multiplier
+}
