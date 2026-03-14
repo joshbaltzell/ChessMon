@@ -175,23 +175,51 @@
     <div id="ladderContainer"></div>
   </div>
 
-  <!-- PILOT SCREEN (human play mode) -->
+  <!-- PILOT SCREEN (play AS your bot vs system opponent) -->
   <div id="pilotScreen" class="screen hidden">
     <div class="screen-nav">
       <button class="nav-back" onclick="closePilot()">&larr; Home</button>
       <span class="screen-title">Pilot Your Bot</span>
+      <span class="pilot-xp-badge">1.5x XP</span>
     </div>
 
-    <!-- Color picker -->
-    <div class="panel" id="colorPickPanel">
+    <!-- Pilot setup -->
+    <div class="panel" id="pilotSetupPanel">
+      <h2>Pilot Your Bot</h2>
+      <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px">Play AS your bot against a system opponent. Your moves train the bot's ML model and earn 1.5x XP!</p>
+      <label>Opponent Level</label>
+      <input type="number" id="pilotOpponentLevel" min="1" max="20" value="1" style="width:80px">
+      <div class="actions" style="margin-top:8px">
+        <button onclick="beginPilotGame('w')">&#9812; Play as White</button>
+        <button class="secondary" onclick="beginPilotGame('b')">&#9818; Play as Black</button>
+      </div>
+    </div>
+
+    <!-- Pilot play panel -->
+    <div class="panel hidden" id="pilotPlayPanel">
+      <h2>Piloting Your Bot</h2>
+      <div class="chess-board-container" id="pilotBoardContainer">
+        <div class="board-wrapper">
+          <div class="rank-labels" id="pilotRankLabels"></div>
+          <div class="chess-board" id="pilotBoard"></div>
+        </div>
+        <div class="file-labels" id="pilotFileLabels"></div>
+        <div class="promo-overlay hidden" id="pilotPromoOverlay"></div>
+      </div>
+      <div class="play-controls" id="pilotPlayControls">
+        <button class="danger" onclick="resignPilotGame()">Resign</button>
+      </div>
+      <div id="pilotStatus"></div>
+    </div>
+
+    <!-- Legacy play vs bot (kept for backwards compat) -->
+    <div class="panel hidden" id="colorPickPanel">
       <h2>Choose Your Color</h2>
       <div class="actions">
         <button onclick="beginPlay('w')">&#9812; Play as White</button>
         <button class="secondary" onclick="beginPlay('b')">&#9818; Play as Black</button>
       </div>
     </div>
-
-    <!-- Play panel (interactive board) -->
     <div class="panel hidden" id="playPanel">
       <h2>Play vs Your Bot</h2>
       <div class="chess-board-container" id="playBoardContainer">
@@ -312,6 +340,7 @@
 <script src="/js/board.js"></script>
 <script src="/js/replay.js"></script>
 <script src="/js/play.js"></script>
+<script src="/js/pilot.js"></script>
 <script src="/js/dev.js"></script>
 <script src="/js/terrarium.js"></script>
 <script src="/js/pixel-art.js"></script>

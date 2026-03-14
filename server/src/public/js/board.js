@@ -18,6 +18,8 @@ function renderInteractiveBoard(chess, boardId, options = {}) {
     legalMoves = [],
     lastFrom = null,
     lastTo = null,
+    suggestedFrom = null,
+    suggestedTo = null,
     onSquareClick = null,
   } = options;
 
@@ -62,6 +64,7 @@ function renderInteractiveBoard(chess, boardId, options = {}) {
         div.classList.add(captureTargets.has(sq) ? 'legal-capture' : 'legal-move');
       }
       if (sq === kingInCheckSq) div.classList.add('in-check');
+      if (sq === suggestedFrom || sq === suggestedTo) div.classList.add('suggested-move');
 
       const piece = chess.get(sq);
       if (piece) {
@@ -82,6 +85,7 @@ function renderInteractiveBoard(chess, boardId, options = {}) {
 
   // Update coordinate labels
   const prefix = boardId === 'playBoard' ? 'play' :
+                 boardId === 'pilotBoard' ? 'pilot' :
                  boardId === 'sparAnimBoard' ? 'sparAnim' : 'replay';
   const rankLabels = document.getElementById(prefix + 'RankLabels');
   const fileLabels = document.getElementById(prefix + 'FileLabels');
