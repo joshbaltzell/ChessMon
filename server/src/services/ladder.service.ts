@@ -1,12 +1,25 @@
 import { eq, and } from 'drizzle-orm'
 import { bots, ladderProgress } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
+import type { PlayParameters } from '../types/index.js'
+import { systemBotPlayParameters } from '../models/bot-intelligence.js'
 import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
-const rawData = require('../data/system-bots.json') as {
-  systemBots: Array<{ level: number; name: string; elo: number; description?: string; weakness?: string; scoutText?: string; playStyleHint?: string }>
+
+interface SystemBotData {
+  level: number
+  name: string
+  elo: number
+  description?: string
+  weakness?: string
+  scoutText?: string
+  playStyleHint?: string
+  specialAbility?: { name: string; description: string; effect: string; value: number }
+  counterPrep?: string
 }
+
+const rawData = require('../data/system-bots.json') as { systemBots: SystemBotData[] }
 const systemBotsData = rawData.systemBots
 
 export interface LadderOpponent {
@@ -179,8 +192,12 @@ export class LadderService {
 
   /**
    * Get scout info about the next undefeated ladder opponent.
+   * Includes special ability and counter-prep suggestion.
    */
-  getScoutInfo(botId: number): { name: string; level: number; weakness: string; scoutText: string; playStyleHint: string } | null {
+  getScoutInfo(botId: number): {
+    name: string; level: number; weakness: string; scoutText: string; playStyleHint: string;
+    specialAbility?: { name: string; description: string }; counterPrep?: string;
+  } | null {
     const ladder = this.getLadderState(botId)
     if (!ladder) return null
     const nextOpp = ladder.opponents.find(o => !o.defeated)
@@ -192,7 +209,49 @@ export class LadderService {
       weakness: systemBot?.weakness || 'No known weakness',
       scoutText: systemBot?.scoutText || 'No intel available.',
       playStyleHint: systemBot?.playStyleHint || 'Unknown play style.',
+      specialAbility: systemBot?.specialAbility
+        ? { name: systemBot.specialAbility.name, description: systemBot.specialAbility.description }
+        : undefined,
+      counterPrep: systemBot?.counterPrep,
     }
+  }
+
+  /**
+   * Get enhanced PlayParameters for a boss fight, applying the boss's special ability.
+   */
+  getBossPlayParameters(level: number): PlayParameters {
+    const baseParams = systemBotPlayParameters(level)
+    const systemBot = this.getSystemBot(level)
+    if (!systemBot?.specialAbility) return baseParams
+
+    const ability = systemBot.specialAbility
+    const params = { ...baseParams }
+
+    switch (ability.effect) {
+      case 'depthBonus':
+        params.searchDepth = Math.min(params.searchDepth + ability.value, 22)
+        break
+      case 'blunderReduction':
+        params.blunderRate *= ability.value
+        break
+      case 'aggressionBoost':
+        params.aggressionWeight += ability.value
+        break
+      case 'positionalBoost':
+        params.positionalWeight += ability.value
+        break
+      case 'tacticalBoost':
+        params.tacticalWeight += ability.value
+        break
+      case 'endgameBoost':
+        params.endgameWeight += ability.value
+        break
+      case 'multiPvBoost':
+        params.multiPv = Math.max(params.multiPv, ability.value)
+        break
+    }
+
+    return params
   }
 
   /**
@@ -211,11 +270,16 @@ export class LadderService {
   }
 
   private mapWeaknessToCard(weakness: string): { card: string; action: string } {
-    if (weakness.toLowerCase().includes('opening')) return { card: 'Study', action: 'Learn a new opening tactic' }
-    if (weakness.toLowerCase().includes('endgame')) return { card: 'Drill', action: 'Drill your endgame tactics' }
-    if (weakness.toLowerCase().includes('tactical') || weakness.toLowerCase().includes('fork') || weakness.toLowerCase().includes('pin'))
-      return { card: 'Drill', action: 'Drill tactical defense patterns' }
-    return { card: 'Spar', action: 'Keep training with more spars' }
+    const w = weakness.toLowerCase()
+    if (w.includes('opening') || w.includes('diagonal')) return { card: 'Opening Prep', action: 'Queue Opening Prep before the fight' }
+    if (w.includes('endgame') || w.includes('simplif')) return { card: 'Aggression Surge', action: 'Play Aggression Surge to win before endgame' }
+    if (w.includes('tactical') || w.includes('fork') || w.includes('pin') || w.includes('sharp'))
+      return { card: 'Tactical Focus', action: 'Queue Tactical Focus to out-tactic the boss' }
+    if (w.includes('aggress') || w.includes('attack') || w.includes('flank'))
+      return { card: 'Aggression Surge', action: 'Play Aggression Surge for aggressive play' }
+    if (w.includes('solid') || w.includes('defen') || w.includes('prophylax'))
+      return { card: 'Iron Defense', action: 'Queue Iron Defense and play solid' }
+    return { card: 'Sharpen', action: 'Queue Sharpen for deeper calculation' }
   }
 
   private getSystemBot(level: number) {

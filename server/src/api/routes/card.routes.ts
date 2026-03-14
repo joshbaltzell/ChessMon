@@ -102,6 +102,8 @@ export function createCardRoutes(pool: StockfishPool) {
                     weakness: scoutInfo.weakness,
                     scoutText: scoutInfo.scoutText,
                     playStyleHint: scoutInfo.playStyleHint,
+                    specialAbility: scoutInfo.specialAbility,
+                    counterPrep: scoutInfo.counterPrep,
                   }
                 } else {
                   effect = {
@@ -187,8 +189,11 @@ export function createCardRoutes(pool: StockfishPool) {
         const { TrainingService } = await import('../../services/training.service.js')
         const trainingService = new TrainingService(db, pool)
 
-        // Run game with buffs/powerups applied
-        const result = await trainingService.cardSpar(botId, nextOppLevel, 1, { buffs, powerups })
+        // Get boss play parameters (with special ability applied)
+        const bossParams = ladderService.getBossPlayParameters(nextOppLevel)
+
+        // Run game with buffs/powerups applied + boss special ability
+        const result = await trainingService.cardSpar(botId, nextOppLevel, 1, { buffs, powerups }, bossParams)
 
         // Check if bot won
         const botWon = (result.game.result === '1-0' && result.game.botPlayedWhite) ||

@@ -118,6 +118,13 @@
   color: var(--text-dim);
 }
 
+.ladder-ability {
+  font-size: 0.55rem;
+  color: var(--neon-yellow);
+  font-style: italic;
+  margin-top: 2px;
+}
+
 .ladder-check {
   font-size: 0.85rem;
 }

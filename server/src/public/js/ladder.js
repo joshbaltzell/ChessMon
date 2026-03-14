@@ -36,12 +36,19 @@ function renderLadder(d) {
       ? '<button class="ladder-fight-btn" onclick="doBossFight()">&#9876; Fight</button>'
       : '';
 
+    // Look up boss ability from client-side data
+    const sysBotData = typeof SYSTEM_BOTS !== 'undefined' ? SYSTEM_BOTS.find(b => b.level === opp.level) : null;
+    const abilityHtml = sysBotData && sysBotData.ability && !opp.defeated
+      ? `<div class="ladder-ability">\u26A1 ${escHtml(sysBotData.ability)}</div>`
+      : '';
+
     opponentsHtml += `
       <div class="ladder-opponent ${cls}">
         <div class="ladder-icon">${icon}</div>
         <div class="ladder-info">
           <div class="ladder-name">${escHtml(opp.name)}</div>
           <div class="ladder-meta">Lv.${opp.level} &bull; ${opp.elo} elo &bull; ${opponentLabels[i] || ''}</div>
+          ${abilityHtml}
         </div>
         ${checkHtml}
         ${fightBtn}

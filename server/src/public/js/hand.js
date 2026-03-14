@@ -282,9 +282,15 @@ async function handleCardEffect(card, effect) {
     case 'scout_info':
       if (effect.name) {
         log(`🔍 Scout: ${effect.name} (Lv.${effect.level})`, 'info');
+        if (effect.specialAbility) {
+          log(`   ⚡ Ability: ${effect.specialAbility.name} — ${effect.specialAbility.description}`, 'info');
+        }
         log(`   Weakness: ${effect.weakness}`, 'dim');
         log(`   ${effect.scoutText}`, 'dim');
         log(`   Play style: ${effect.playStyleHint}`, 'dim');
+        if (effect.counterPrep) {
+          log(`   💡 Counter: ${effect.counterPrep}`, 'info');
+        }
       } else {
         log(`🔍 ${effect.message || 'No opponent to scout.'}`, 'info');
       }

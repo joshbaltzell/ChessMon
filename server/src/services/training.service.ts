@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { bots, botTactics, trainingLog, gameRecords } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { StockfishPool } from '../engine/stockfish-pool.js'
+import type { PlayParameters } from '../types/index.js'
 import { simulateGame } from '../engine/game-simulator.js'
 import { applyBuffs, type ActiveBuff, type ActivePowerup } from '../engine/buff-resolver.js'
 import { botToPlayParameters, systemBotPlayParameters } from '../models/bot-intelligence.js'
@@ -460,12 +461,13 @@ export class TrainingService {
     opponentLevel: number,
     xpMultiplier: number = 1,
     cardEffects?: { buffs: ActiveBuff[]; powerups: ActivePowerup[] },
+    opponentParamsOverride?: PlayParameters,
   ) {
     const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
     if (!bot) throw new Error('Bot not found')
 
     const level = opponentLevel || bot.level + 1
-    const opponentParams = systemBotPlayParameters(level)
+    const opponentParams = opponentParamsOverride || systemBotPlayParameters(level)
     const opponentElo = (level * 100) + 300
     const opponentDescription = `System Bot Level ${level}`
 
