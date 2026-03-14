@@ -9,7 +9,6 @@
  */
 function renderLadder(d) {
   const ladder = d.ladder;
-  // Ensure we have a container in dashContent
   let ladderEl = document.getElementById('ladderContainer');
   if (!ladderEl) {
     ladderEl = document.createElement('div');
@@ -26,7 +25,6 @@ function renderLadder(d) {
   const opponentLabels = ['Warm-Up', 'Rival', 'Gatekeeper'];
 
   let opponentsHtml = '';
-  // Render from top (gatekeeper) to bottom (warm-up)
   for (let i = ladder.opponents.length - 1; i >= 0; i--) {
     const opp = ladder.opponents[i];
     let cls = '';
@@ -37,6 +35,11 @@ function renderLadder(d) {
     const icon = opp.defeated ? '&#10003;' : (i + 1);
     const checkHtml = opp.defeated ? '<span class="ladder-check">&#10003;</span>' : '';
 
+    // Add fight button for current (next undefeated) opponent
+    const fightBtn = (!opp.defeated && i === ladder.currentOpponentIndex)
+      ? '<button class="ladder-fight-btn" onclick="doBossFight()">⚔️ Fight</button>'
+      : '';
+
     opponentsHtml += `
       <div class="ladder-opponent ${cls}">
         <div class="ladder-icon">${icon}</div>
@@ -45,22 +48,45 @@ function renderLadder(d) {
           <div class="ladder-meta">Lv.${opp.level} &bull; ${opp.elo} elo &bull; ${opponentLabels[i] || ''}</div>
         </div>
         ${checkHtml}
+        ${fightBtn}
       </div>
     `;
   }
 
-  // Championship bout
-  const champClass = ladder.allDefeated ? 'unlocked' : 'locked';
-  const champOnclick = ladder.allDefeated ? 'onclick="doLevelTest()"' : '';
-  const champHtml = `
-    <div class="ladder-championship ${champClass}" ${champOnclick}>
-      <div class="ladder-championship-icon">${ladder.allDefeated ? '&#127942;' : '&#128274;'}</div>
-      <div class="ladder-championship-info">
-        <div class="ladder-championship-title">Championship Bout</div>
-        <div class="ladder-championship-desc">${ladder.allDefeated ? 'Level Test unlocked! Click to begin.' : 'Defeat all opponents to unlock'}</div>
+  // Championship section
+  let champHtml = '';
+  if (d.championship && d.championship.status === 'active') {
+    champHtml = `
+      <div class="championship-active">
+        <div class="ladder-championship-icon">🏆</div>
+        <div class="ladder-championship-info">
+          <div class="ladder-championship-title">Championship — Round ${d.championship.currentRound}</div>
+          <div class="ladder-championship-desc">Score: ${d.championship.gamesWon}-${d.championship.gamesPlayed - d.championship.gamesWon}</div>
+        </div>
+        <button class="ladder-fight-btn" onclick="playChampionshipRound()">Play Round</button>
       </div>
-    </div>
-  `;
+    `;
+  } else if (ladder.allDefeated) {
+    champHtml = `
+      <div class="ladder-championship unlocked" onclick="startChampionship()">
+        <div class="ladder-championship-icon">🏆</div>
+        <div class="ladder-championship-info">
+          <div class="ladder-championship-title">Championship Bout</div>
+          <div class="ladder-championship-desc">All opponents defeated! Click to begin.</div>
+        </div>
+      </div>
+    `;
+  } else {
+    champHtml = `
+      <div class="ladder-championship locked">
+        <div class="ladder-championship-icon">🔒</div>
+        <div class="ladder-championship-info">
+          <div class="ladder-championship-title">Championship Bout</div>
+          <div class="ladder-championship-desc">Defeat all opponents to unlock</div>
+        </div>
+      </div>
+    `;
+  }
 
   ladderEl.innerHTML = `
     <div class="ladder-panel">

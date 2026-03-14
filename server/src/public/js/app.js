@@ -581,6 +581,119 @@ function showQuickSparResult(r) {
 }
 
 // ===================================================================
+// Boss Fight (free ladder fight)
+// ===================================================================
+async function doBossFight() {
+  if (sparInProgress) return;
+  sparInProgress = true;
+  disableActions('Boss fight...');
+  try {
+    const r = await api('POST', `/bots/${currentBotId}/boss-fight`);
+    const botWon = r.botWon;
+    const cls = botWon ? 'win' : 'loss';
+
+    log(`⚔️ Boss Fight: ${botWon ? 'WON' : 'LOST'} in ${r.game.moveCount} moves`, cls);
+
+    if (botWon) {
+      log('✅ Ladder opponent defeated!', 'info');
+    } else {
+      log(`💪 Keep training! +3 bonus energy`, 'info');
+      if (r.bossLossAdvice) {
+        log(`💡 Tip: Try ${r.bossLossAdvice.suggestedCard} — ${r.bossLossAdvice.suggestedAction}`, 'info');
+      }
+    }
+
+    if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
+
+    // Show splash
+    if (typeof showSplash === 'function') {
+      showSplash({
+        type: botWon ? 'victory' : 'defeat',
+        title: botWon ? 'BOSS DEFEATED!' : 'BOSS WINS',
+        subtitle: `vs ${r.game.opponent}`,
+        stats: { elo: r.eloChange, xp: r.xpGained, moves: r.game.moveCount },
+        emotion: r.emotion,
+        bossLossAdvice: r.bossLossAdvice,
+      });
+    }
+
+    await refreshDashboard();
+  } catch(e) {
+    log('Boss fight failed: ' + e.message, 'loss');
+  } finally {
+    sparInProgress = false;
+    enableActions();
+  }
+}
+
+// ===================================================================
+// Championship Bout
+// ===================================================================
+async function startChampionship() {
+  if (sparInProgress) return;
+  sparInProgress = true;
+  try {
+    const bout = await api('POST', `/bots/${currentBotId}/championship/start`);
+    log(`🏆 Championship started! Round 1: ${bout.roundTitle}`, 'info');
+    await refreshDashboard();
+  } catch(e) {
+    log('Championship error: ' + e.message, 'loss');
+  } finally {
+    sparInProgress = false;
+  }
+}
+
+async function playChampionshipRound() {
+  if (sparInProgress) return;
+  sparInProgress = true;
+  disableActions('Championship round...');
+  try {
+    const r = await api('POST', `/bots/${currentBotId}/championship/play-round`);
+    const cls = r.roundResult === 'win' ? 'win' : 'loss';
+    log(`🏆 ${r.roundTitle}: ${r.roundResult.toUpperCase()} (Score: ${r.bout.gamesWon}-${r.bout.gamesPlayed - r.bout.gamesWon})`, cls);
+
+    if (r.bout.status === 'won') {
+      log(`🎉 CHAMPION! Advanced to Level ${r.newLevel}!`, 'win');
+      showSplash({
+        type: 'levelup',
+        title: 'CHAMPION!',
+        subtitle: `Advanced to Level ${r.newLevel}!`,
+        stats: { elo: r.game?.eloChange, xp: r.game?.xpGained, wins: r.bout.gamesWon, total: r.bout.gamesPlayed },
+        emotion: r.emotion,
+      });
+    } else if (r.bout.status === 'lost') {
+      log('😤 Championship lost. +3 bonus energy. Train harder!', 'loss');
+      if (r.bossLossAdvice) {
+        log(`💡 Tip: ${r.bossLossAdvice.suggestedCard} — ${r.bossLossAdvice.suggestedAction}`, 'info');
+      }
+      showSplash({
+        type: 'defeat',
+        title: 'ALMOST!',
+        subtitle: `Championship lost ${r.bout.gamesWon}-${r.bout.gamesPlayed - r.bout.gamesWon}. Keep training!`,
+        stats: { energy: 3 },
+        emotion: r.emotion,
+      });
+    } else {
+      // Still active, show round result
+      showSplash({
+        type: r.roundResult === 'win' ? 'victory' : 'defeat',
+        title: `${r.roundTitle}: ${r.roundResult.toUpperCase()}`,
+        subtitle: `Score: ${r.bout.gamesWon}-${r.bout.gamesPlayed - r.bout.gamesWon}`,
+        stats: { moves: r.game?.moveCount },
+        emotion: r.emotion,
+      });
+    }
+
+    await refreshDashboard();
+  } catch(e) {
+    log('Championship error: ' + e.message, 'loss');
+  } finally {
+    sparInProgress = false;
+    enableActions();
+  }
+}
+
+// ===================================================================
 // Tactic shop
 // ===================================================================
 const CATEGORY_LABELS = {

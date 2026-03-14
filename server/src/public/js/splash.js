@@ -43,7 +43,25 @@ function showSplash(opts) {
     if (opts.stats.bonus > 0) {
       items.push(`<div class="splash-stat"><div class="splash-stat-value gold">+${opts.stats.bonus}</div><div class="splash-stat-label">Bonus Pts</div></div>`);
     }
+    if (opts.stats.energy !== undefined) {
+      items.push(`<div class="splash-stat"><div class="splash-stat-value positive">+${opts.stats.energy}</div><div class="splash-stat-label">Energy</div></div>`);
+    }
     statsHtml = `<div class="splash-stats">${items.join('')}</div>`;
+  }
+
+  // Loot display
+  let lootHtml = '';
+  if (opts.loot && opts.loot.type !== 'none') {
+    const lootIcons = { insight: '💡', energy: '⚡', card: '🃏', intel: '🔍' };
+    const lootIcon = lootIcons[opts.loot.type] || '🎁';
+    let lootText = '';
+    switch (opts.loot.type) {
+      case 'insight': lootText = opts.loot.data.message; break;
+      case 'energy': lootText = `+${opts.loot.data.amount} Energy`; break;
+      case 'card': lootText = opts.loot.data.card?.name || 'New card!'; break;
+      case 'intel': lootText = opts.loot.data.scoutText || 'Boss intel!'; break;
+    }
+    lootHtml = `<div class="splash-loot">${lootIcon} ${escHtml(lootText)}</div>`;
   }
 
   // Emotion
@@ -56,6 +74,7 @@ function showSplash(opts) {
     <div class="splash-title">${escHtml(opts.title)}</div>
     <div class="splash-subtitle">${escHtml(opts.subtitle)}</div>
     ${statsHtml}
+    ${lootHtml}
     ${emotionHtml}
     <div class="splash-dismiss">Click anywhere to continue</div>
   `;

@@ -172,3 +172,37 @@
   font-size: 0.6rem;
   color: var(--text-dim);
 }
+
+.ladder-fight-btn {
+  background: var(--neon-pink);
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.ladder-fight-btn:hover {
+  background: var(--neon-green);
+  transform: scale(1.05);
+}
+
+.championship-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid var(--neon-yellow);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.splash-loot {
+  font-size: 1rem;
+  color: var(--neon-yellow);
+  margin: 8px 0;
+  text-align: center;
+}

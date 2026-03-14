@@ -92,12 +92,12 @@ async function drawNewHand() {
   btn.textContent = 'Drawing...';
 
   try {
-    const hand = await api('POST', `/bots/${currentBotId}/hand/draw`);
+    const hand = await api('POST', `/bots/${currentBotId}/hand/new-round`);
     currentHand = hand;
     updateEnergyDisplay();
     updateRoundInfo();
     renderHandCards();
-    log(`New round! Drew ${hand.cards.length} cards. Energy: ${hand.energy}`, 'info');
+    log(`New cards drawn! Energy preserved: ${hand.energy}`, 'info');
   } catch (e) {
     log('Draw error: ' + e.message, 'loss');
   } finally {
@@ -261,7 +261,14 @@ async function handleCardEffect(card, effect) {
       startPlay();
       break;
     case 'scout_info':
-      log(`🔍 Scout report: ${effect.message}`, 'info');
+      if (effect.name) {
+        log(`🔍 Scout: ${effect.name} (Lv.${effect.level})`, 'info');
+        log(`   Weakness: ${effect.weakness}`, 'dim');
+        log(`   ${effect.scoutText}`, 'dim');
+        log(`   Play style: ${effect.playStyleHint}`, 'dim');
+      } else {
+        log(`🔍 ${effect.message || 'No opponent to scout.'}`, 'info');
+      }
       break;
     case 'energy_gained':
       log('✨ Focus: +1 Energy!', 'info');
