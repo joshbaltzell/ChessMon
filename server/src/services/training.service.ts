@@ -707,7 +707,7 @@ export class TrainingService {
     let energyEarned = 1
     if (streak >= 3) energyEarned += 2
 
-    const loot = lootService.rollLoot(botId, bot.level)
+    const loot = lootService.rollLoot(botId, bot.level, streak)
     if (loot.type === 'energy' && loot.data?.amount) {
       energyEarned += loot.data.amount
     }

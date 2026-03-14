@@ -18,12 +18,17 @@ export class LootService {
     this.ladderService = new LadderService(db)
   }
 
-  rollLoot(botId: number, botLevel: number): LootResult {
+  rollLoot(botId: number, botLevel: number, winStreak: number = 0): LootResult {
     const roll = Math.random()
-    if (roll < 0.50) return { type: 'none', data: null }
-    if (roll < 0.70) return this.rollInsight(botLevel)
-    if (roll < 0.85) return { type: 'energy', data: { amount: 1 } }
-    if (roll < 0.95) return this.rollCardDrop(botId, botLevel)
+    // Streak multiplier: at 5+ streak, "no loot" threshold drops from 50% to 25%
+    const streakBonus = winStreak >= 5 ? 0.25 : winStreak >= 3 ? 0.10 : 0
+    const noneThreshold = 0.50 - streakBonus
+    if (roll < noneThreshold) return { type: 'none', data: null }
+    // Redistribute remaining probability
+    const lootRoll = (roll - noneThreshold) / (1 - noneThreshold)
+    if (lootRoll < 0.40) return this.rollInsight(botLevel)
+    if (lootRoll < 0.70) return { type: 'energy', data: { amount: winStreak >= 5 ? 2 : 1 } }
+    if (lootRoll < 0.90) return this.rollCardDrop(botId, botLevel)
     return this.rollBossIntel(botId)
   }
 
