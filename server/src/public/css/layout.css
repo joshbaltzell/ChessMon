@@ -1,66 +1,269 @@
 /* ============================================================
-   ChessMon — Layout (Two-Column with Bot Panel)
+   ChessMon — Layout (Screen-Based State Machine)
    ============================================================ */
-
-/* Top bar */
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.top-bar .logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.top-bar .logo h1 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.top-bar .status-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 0.75rem;
-  color: var(--text-dim);
-}
 
 /* Main container */
 .container {
-  max-width: 900px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.left-col, .right-col {
-  /* no special styles in single-col mode */
+/* ============================================================
+   Screen system — only one visible at a time
+   ============================================================ */
+.screen {
+  animation: screenFadeIn 0.2s ease;
 }
 
-/* Two-Column Layout when board is active (desktop/tablet) */
+.screen.hidden {
+  display: none;
+}
+
+@keyframes screenFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Screen navigation bar
+   ============================================================ */
+.screen-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.screen-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  color: var(--neon-blue);
+  flex: 1;
+}
+
+.nav-back {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.nav-back:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.nav-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.nav-close:hover {
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+}
+
+.nav-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+/* ============================================================
+   Context banner (what to do next)
+   ============================================================ */
+.context-banner {
+  background: var(--surface-raised);
+  border: 1px solid var(--neon-blue);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
+}
+
+.context-banner.hidden {
+  display: none;
+}
+
+.context-banner.boss-ready {
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+  box-shadow: 0 0 8px rgba(255, 45, 138, 0.15);
+}
+
+/* ============================================================
+   Home screen action tiles
+   ============================================================ */
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.action-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.action-tile:hover {
+  border-color: var(--neon-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+}
+
+.action-tile.secondary {
+  background: transparent;
+}
+
+.action-icon {
+  font-size: 1.8rem;
+}
+
+.action-label {
+  font-size: 0.75rem;
+  font-family: 'Press Start 2P', monospace;
+  color: var(--text-dim);
+}
+
+.action-tile:hover .action-label {
+  color: var(--neon-blue);
+}
+
+.home-extras {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.home-extras button {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+}
+
+/* ============================================================
+   Floating panels (overlay on any screen)
+   ============================================================ */
+.floating-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  animation: floatIn 0.2s ease;
+}
+
+.floating-panel.hidden {
+  display: none;
+}
+
+.floating-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.floating-panel-header h2 {
+  margin: 0;
+}
+
+/* Backdrop for floating panels */
+.floating-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+
+@keyframes floatIn {
+  from { opacity: 0; transform: translate(-50%, -48%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* ============================================================
+   Prep screen context
+   ============================================================ */
+.prep-context {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   Two-column layout when board is active (pilot/play screen)
+   ============================================================ */
 @media (min-width: 768px) {
   .container.board-active {
-    max-width: 1200px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0 16px;
-    align-items: start;
+    max-width: 1000px;
   }
-  .container.board-active > h1,
-  .container.board-active > .subtitle { grid-column: 1 / -1; }
-  .container.board-active .left-col { grid-column: 1; }
-  .container.board-active .right-col {
-    grid-column: 2;
-    position: sticky;
-    top: 16px;
-    max-width: 480px;
+}
+
+/* ============================================================
+   Responsive: smaller screens
+   ============================================================ */
+@media (max-width: 480px) {
+  .home-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .action-tile {
+    padding: 12px 8px;
+  }
+
+  .action-icon {
+    font-size: 1.4rem;
+  }
+
+  .floating-panel {
+    width: 95%;
+    max-height: 85vh;
   }
 }

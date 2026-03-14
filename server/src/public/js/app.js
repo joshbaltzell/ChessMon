@@ -1,5 +1,5 @@
 /* ============================================================
-   ChessMon — Main Application (Orchestration, Auth, API, State)
+   ChessMon — Main Application (Screen State Machine)
    ============================================================ */
 
 const API = '/api/v1';
@@ -7,9 +7,52 @@ let token = null;
 let currentBotId = null;
 let sparInProgress = false;
 let previousElo = null;
+let lastSparPgn = null;
+
+// Screen state
+let currentScreen = null;
+let previousScreen = null;
 
 // Store last dashboard data globally for hand.js access
 window._lastDashboard = null;
+
+// ===================================================================
+// Screen state machine
+// ===================================================================
+const SCREENS = ['homeScreen', 'prepScreen', 'ladderScreen', 'pilotScreen', 'fightScreen'];
+
+function showScreen(name) {
+  const screenId = name + 'Screen';
+
+  // Hide all game screens
+  SCREENS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  // Show target screen
+  const target = document.getElementById(screenId);
+  if (target) {
+    target.classList.remove('hidden');
+    previousScreen = currentScreen;
+    currentScreen = name;
+  }
+
+  // Screen-specific init
+  if (name === 'home') {
+    refreshDashboard();
+  } else if (name === 'prep') {
+    initPrepScreen();
+  } else if (name === 'ladder') {
+    initLadderScreen();
+  } else if (name === 'pilot') {
+    initPilotScreen();
+  }
+}
+
+function goBack() {
+  showScreen(previousScreen || 'home');
+}
 
 // ===================================================================
 // API helper
@@ -79,6 +122,15 @@ async function loadBots() {
 
 function showCreateBot() {
   document.getElementById('createBotPanel').classList.remove('hidden');
+}
+
+function switchBot() {
+  // Go back to bot select
+  showScreen('home');
+  document.getElementById('homeScreen').classList.add('hidden');
+  document.getElementById('authScreen').querySelector('#botSelectPanel').classList.remove('hidden');
+  document.getElementById('authScreen').style.display = '';
+  loadBots();
 }
 
 // ===================================================================
@@ -157,7 +209,6 @@ async function createBot() {
     document.getElementById('createErr').textContent = '';
     log(`Created bot "${data.bot.name}"!`, 'info');
     selectBot(data.bot.id);
-    loadBots();
   } catch(e) {
     document.getElementById('createErr').textContent = e.message;
   }
@@ -168,14 +219,13 @@ async function createBot() {
 // ===================================================================
 async function selectBot(id) {
   currentBotId = id;
-  document.getElementById('dashPanel').classList.remove('hidden');
-  document.getElementById('logPanel').classList.remove('hidden');
-  await refreshDashboard();
+  // Hide auth screen, show home screen
+  document.getElementById('authScreen').style.display = 'none';
+  showScreen('home');
 }
 
 async function refreshDashboard() {
-  const spinner = document.getElementById('actionSpinner');
-  if (spinner) spinner.style.display = 'none';
+  if (!currentBotId) return;
 
   const d = await api('GET', `/bots/${currentBotId}/dashboard`);
   window._lastDashboard = d;
@@ -185,20 +235,11 @@ async function refreshDashboard() {
     renderTerrarium(d);
   }
 
-  // Render ladder if available
-  if (typeof renderLadder === 'function') {
-    renderLadder(d);
-  }
-
-  // Show quick spar area when dashboard is visible
-  const quickSparArea = document.getElementById('quickSparArea');
-  if (quickSparArea) quickSparArea.classList.remove('hidden');
-
   // Update streak display
   const streakEl = document.getElementById('streakDisplay');
   if (streakEl) {
     if (d.streak >= 3) {
-      streakEl.innerHTML = `🔥 Streak: ${d.streak}x`;
+      streakEl.innerHTML = `\uD83D\uDD25 Streak: ${d.streak}x`;
       streakEl.classList.add('hot-streak');
     } else if (d.streak > 0) {
       streakEl.innerHTML = `Streak: ${d.streak}x`;
@@ -212,48 +253,116 @@ async function refreshDashboard() {
   // Track elo for milestone detection
   if (previousElo === null) previousElo = d.stats.elo;
 
-  // Show context cue
-  if (d.contextCues) {
-    log(d.contextCues.text, 'info');
+  // Show context banner
+  updateContextBanner(d);
+
+  // Update replay button
+  const replayBtn = document.getElementById('lastSparReplayBtn');
+  if (replayBtn) {
+    replayBtn.innerHTML = lastSparPgn
+      ? '<button class="secondary" onclick="startReplay(lastSparPgn)">Replay Last Spar</button>'
+      : '';
   }
 
-  const acts = document.getElementById('dashActions');
-  const pts = d.training.pointsRemaining;
-  acts.innerHTML = `
-    <button class="green" onclick="doLevelTest()">Level Test</button>
-    ${lastSparPgn ? '<button class="secondary" onclick="startReplay(lastSparPgn)">Replay Last Spar</button>' : ''}
-    <button class="secondary" onclick="showBotBrain()">Bot Brain</button>
-    <button class="secondary" onclick="refreshDashboard()">Refresh</button>
-  `;
+  // Store hand data for prep screen
+  if (d.hand && typeof displayHand === 'function' && currentScreen === 'prep') {
+    displayHand(d.hand);
+  }
+}
 
-  // Display card hand
+function updateContextBanner(d) {
+  const banner = document.getElementById('contextBanner');
+  if (!banner) return;
+
+  let text = '';
+  let cls = 'context-banner';
+
+  if (d.contextCues) {
+    text = d.contextCues.text;
+    if (d.contextCues.type === 'boss_ready') cls += ' boss-ready';
+  } else if (d.hand && d.hand.energy === 0 && d.hand.cards && d.hand.cards.length > 0) {
+    text = 'Quick Spar to earn energy, then play cards to prepare!';
+  } else if (d.stats.gamesPlayed === 0) {
+    text = 'Welcome! Hit Quick Spar to play your first game.';
+  }
+
+  if (text) {
+    banner.textContent = text;
+    banner.className = cls;
+  } else {
+    banner.className = 'context-banner hidden';
+  }
+}
+
+// ===================================================================
+// Screen init functions
+// ===================================================================
+function initPrepScreen() {
+  const d = window._lastDashboard;
+  if (!d) { refreshDashboard(); return; }
+
+  // Set prep context
+  const ctx = document.getElementById('prepContext');
+  if (ctx && d.ladder) {
+    const nextOpp = d.ladder.opponents?.find(o => !o.defeated);
+    if (nextOpp) {
+      ctx.innerHTML = `Preparing for: <strong>${escHtml(nextOpp.name)}</strong> (Lv.${nextOpp.level}, ${nextOpp.elo} elo)`;
+    } else if (d.ladder.allDefeated) {
+      ctx.innerHTML = 'Ladder clear! Prepare for the <strong>Championship Bout</strong>';
+    } else {
+      ctx.innerHTML = 'Prepare your bot for the next fight';
+    }
+  }
+
+  // Display hand
   if (d.hand && typeof displayHand === 'function') {
     displayHand(d.hand);
   }
+}
+
+function initLadderScreen() {
+  const d = window._lastDashboard;
+  if (!d) { refreshDashboard(); return; }
+  if (typeof renderLadder === 'function') {
+    renderLadder(d);
+  }
+}
+
+function initPilotScreen() {
+  if (!window.Chess) {
+    log('Chess engine still loading, please wait...', 'dim');
+    return;
+  }
+  // Show color picker, hide play panel
+  document.getElementById('colorPickPanel').classList.remove('hidden');
+  document.getElementById('playPanel').classList.add('hidden');
+}
+
+function closePilot() {
+  if (playSession) {
+    // Ask before leaving active game
+    if (!confirm('Leave active game? (counts as resignation)')) return;
+    resignGame();
+    return;
+  }
+  showScreen('home');
 }
 
 // ===================================================================
 // Action button loading states
 // ===================================================================
 function disableActions(msg) {
-  const acts = document.getElementById('dashActions');
-  acts.querySelectorAll('button').forEach(b => b.disabled = true);
-  let spinner = document.getElementById('actionSpinner');
-  if (!spinner) {
-    spinner = document.createElement('div');
-    spinner.id = 'actionSpinner';
-    spinner.style.cssText = 'font-size:0.85rem;color:var(--neon-yellow);margin:6px 0;';
-    acts.parentElement.insertBefore(spinner, acts.nextSibling);
+  document.querySelectorAll('.action-tile, .btn-quick-spar').forEach(b => b.disabled = true);
+  const banner = document.getElementById('contextBanner');
+  if (banner) {
+    banner.textContent = '\u23F3 ' + msg;
+    banner.className = 'context-banner';
   }
-  spinner.textContent = '\u23F3 ' + msg;
-  spinner.style.display = '';
 }
 
 function enableActions() {
-  const acts = document.getElementById('dashActions');
-  acts.querySelectorAll('button').forEach(b => b.disabled = false);
-  const spinner = document.getElementById('actionSpinner');
-  if (spinner) spinner.style.display = 'none';
+  document.querySelectorAll('.action-tile, .btn-quick-spar').forEach(b => b.disabled = false);
+  if (window._lastDashboard) updateContextBanner(window._lastDashboard);
 }
 
 // ===================================================================
@@ -267,7 +376,6 @@ async function showBotBrain() {
   const content = document.getElementById('brainContent');
   content.innerHTML = '<span class="dim">Analyzing neural network...</span>';
   panel.classList.remove('hidden');
-  panel.scrollIntoView({ behavior: 'smooth' });
 
   try {
     const r = await api('GET', `/bots/${currentBotId}/brain`);
@@ -395,9 +503,11 @@ async function showBotBrain() {
 function closeFloatingPanels() {
   document.getElementById('tacticShopPanel').classList.add('hidden');
   document.getElementById('sparPickPanel').classList.add('hidden');
-  document.getElementById('colorPickPanel').classList.add('hidden');
   document.getElementById('brainPanel').classList.add('hidden');
-  if (sparAnimTimer) closeSparAnim();
+  document.getElementById('replayPanel').classList.add('hidden');
+  if (typeof sparAnimTimer !== 'undefined' && sparAnimTimer) {
+    if (typeof closeSparAnim === 'function') closeSparAnim();
+  }
 }
 
 // ===================================================================
@@ -428,7 +538,7 @@ const SYSTEM_BOTS = [
 
 async function showSparPicker() {
   closeFloatingPanels();
-  const dash = await api('GET', `/bots/${currentBotId}/dashboard`);
+  const dash = window._lastDashboard || await api('GET', `/bots/${currentBotId}/dashboard`);
   const botLevel = dash.stats.level;
   const botElo = dash.stats.elo;
   const panel = document.getElementById('sparPickPanel');
@@ -453,7 +563,6 @@ async function showSparPicker() {
   }).join('');
 
   panel.classList.remove('hidden');
-  panel.scrollIntoView({ behavior:'smooth' });
 }
 
 async function doSpar(opponentLevel) {
@@ -480,7 +589,6 @@ async function doSpar(opponentLevel) {
         startSparAnim(r.game.pgn, r.game.opponent, resultLabel, botWon);
       }
     }
-    // Show splash screen
     if (typeof showSplash === 'function') {
       showSplash({
         type: cls === 'win' ? 'victory' : cls === 'loss' ? 'defeat' : 'draw',
@@ -523,51 +631,44 @@ function showQuickSparResult(r) {
   const cls = botWon ? 'win' : botLost ? 'loss' : 'draw';
   const won = botWon ? 'WON' : botLost ? 'LOST' : 'DREW';
 
-  log(`⚔️ Quick Spar: ${won} in ${r.game.moveCount} moves (Elo ${r.eloChange >= 0 ? '+' : ''}${r.eloChange}, +${r.xpGained} XP, +${r.energyEarned} energy)`, cls);
+  log(`\u2694 Quick Spar: ${won} in ${r.game.moveCount} moves (Elo ${r.eloChange >= 0 ? '+' : ''}${r.eloChange}, +${r.xpGained} XP, +${r.energyEarned} energy)`, cls);
 
-  // Show key moments
   if (r.keyMoments && r.keyMoments.length > 0) {
     r.keyMoments.slice(0, 2).forEach(m => {
-      log(`  Move ${m.moveNumber}: ${m.move} — ${m.type}`, 'dim');
+      log(`  Move ${m.moveNumber}: ${m.move} \u2014 ${m.type}`, 'dim');
     });
   }
 
-  // Show loot
   if (r.loot && r.loot.type !== 'none') {
     switch (r.loot.type) {
-      case 'insight': log(`💡 Insight: "${r.loot.data.message}"`, 'info'); break;
-      case 'energy': log(`⚡ Bonus energy: +${r.loot.data.amount}`, 'info'); break;
-      case 'card': log(`🃏 Card drop: ${r.loot.data.card?.name || 'New card added!'}`, 'info'); break;
-      case 'intel': log(`🔍 Boss Intel: ${r.loot.data.scoutText || 'Intel gathered!'}`, 'info'); break;
+      case 'insight': log(`\uD83D\uDCA1 Insight: "${r.loot.data.message}"`, 'info'); break;
+      case 'energy': log(`\u26A1 Bonus energy: +${r.loot.data.amount}`, 'info'); break;
+      case 'card': log(`\uD83C\uDCCF Card drop: ${r.loot.data.card?.name || 'New card added!'}`, 'info'); break;
+      case 'intel': log(`\uD83D\uDD0D Boss Intel: ${r.loot.data.scoutText || 'Intel gathered!'}`, 'info'); break;
     }
   }
 
-  // Show streak
   if (r.streak >= 3) {
-    log(`🔥 Win streak: ${r.streak}x (+2 bonus energy!)`, 'info');
+    log(`\uD83D\uDD25 Win streak: ${r.streak}x (+2 bonus energy!)`, 'info');
   } else if (r.streak > 0 && botWon) {
     log(`Streak: ${r.streak}x`, 'dim');
   }
 
-  // Show emotion
   if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
 
-  // Store PGN for replay
   if (r.game && r.game.pgn) {
     lastSparPgn = r.game.pgn;
   }
 
-  // Elo milestone detection
   if (previousElo !== null) {
     const oldMilestone = Math.floor(previousElo / 50);
     const newMilestone = Math.floor(r.newElo / 50);
     if (newMilestone > oldMilestone) {
-      log(`🏅 Elo milestone: ${newMilestone * 50}!`, 'info');
+      log(`\uD83C\uDFC5 Elo milestone: ${newMilestone * 50}!`, 'info');
     }
   }
   previousElo = r.newElo;
 
-  // Show splash
   if (typeof showSplash === 'function') {
     showSplash({
       type: botWon ? 'victory' : botLost ? 'defeat' : 'draw',
@@ -592,20 +693,19 @@ async function doBossFight() {
     const botWon = r.botWon;
     const cls = botWon ? 'win' : 'loss';
 
-    log(`⚔️ Boss Fight: ${botWon ? 'WON' : 'LOST'} in ${r.game.moveCount} moves`, cls);
+    log(`\u2694 Boss Fight: ${botWon ? 'WON' : 'LOST'} in ${r.game.moveCount} moves`, cls);
 
     if (botWon) {
-      log('✅ Ladder opponent defeated!', 'info');
+      log('\u2705 Ladder opponent defeated!', 'info');
     } else {
-      log(`💪 Keep training! +3 bonus energy`, 'info');
+      log(`\uD83D\uDCAA Keep training! +3 bonus energy`, 'info');
       if (r.bossLossAdvice) {
-        log(`💡 Tip: Try ${r.bossLossAdvice.suggestedCard} — ${r.bossLossAdvice.suggestedAction}`, 'info');
+        log(`\uD83D\uDCA1 Tip: Try ${r.bossLossAdvice.suggestedCard} \u2014 ${r.bossLossAdvice.suggestedAction}`, 'info');
       }
     }
 
     if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
 
-    // Show splash
     if (typeof showSplash === 'function') {
       showSplash({
         type: botWon ? 'victory' : 'defeat',
@@ -618,6 +718,8 @@ async function doBossFight() {
     }
 
     await refreshDashboard();
+    // Re-render ladder if on ladder screen
+    if (currentScreen === 'ladder') initLadderScreen();
   } catch(e) {
     log('Boss fight failed: ' + e.message, 'loss');
   } finally {
@@ -634,8 +736,9 @@ async function startChampionship() {
   sparInProgress = true;
   try {
     const bout = await api('POST', `/bots/${currentBotId}/championship/start`);
-    log(`🏆 Championship started! Round 1: ${bout.roundTitle}`, 'info');
+    log(`\uD83C\uDFC6 Championship started! Round 1: ${bout.roundTitle}`, 'info');
     await refreshDashboard();
+    if (currentScreen === 'ladder') initLadderScreen();
   } catch(e) {
     log('Championship error: ' + e.message, 'loss');
   } finally {
@@ -650,10 +753,10 @@ async function playChampionshipRound() {
   try {
     const r = await api('POST', `/bots/${currentBotId}/championship/play-round`);
     const cls = r.roundResult === 'win' ? 'win' : 'loss';
-    log(`🏆 ${r.roundTitle}: ${r.roundResult.toUpperCase()} (Score: ${r.bout.gamesWon}-${r.bout.gamesPlayed - r.bout.gamesWon})`, cls);
+    log(`\uD83C\uDFC6 ${r.roundTitle}: ${r.roundResult.toUpperCase()} (Score: ${r.bout.gamesWon}-${r.bout.gamesPlayed - r.bout.gamesWon})`, cls);
 
     if (r.bout.status === 'won') {
-      log(`🎉 CHAMPION! Advanced to Level ${r.newLevel}!`, 'win');
+      log(`\uD83C\uDF89 CHAMPION! Advanced to Level ${r.newLevel}!`, 'win');
       showSplash({
         type: 'levelup',
         title: 'CHAMPION!',
@@ -662,9 +765,9 @@ async function playChampionshipRound() {
         emotion: r.emotion,
       });
     } else if (r.bout.status === 'lost') {
-      log('😤 Championship lost. +3 bonus energy. Train harder!', 'loss');
+      log('\uD83D\uDE24 Championship lost. +3 bonus energy. Train harder!', 'loss');
       if (r.bossLossAdvice) {
-        log(`💡 Tip: ${r.bossLossAdvice.suggestedCard} — ${r.bossLossAdvice.suggestedAction}`, 'info');
+        log(`\uD83D\uDCA1 Tip: ${r.bossLossAdvice.suggestedCard} \u2014 ${r.bossLossAdvice.suggestedAction}`, 'info');
       }
       showSplash({
         type: 'defeat',
@@ -674,7 +777,6 @@ async function playChampionshipRound() {
         emotion: r.emotion,
       });
     } else {
-      // Still active, show round result
       showSplash({
         type: r.roundResult === 'win' ? 'victory' : 'defeat',
         title: `${r.roundTitle}: ${r.roundResult.toUpperCase()}`,
@@ -685,6 +787,7 @@ async function playChampionshipRound() {
     }
 
     await refreshDashboard();
+    if (currentScreen === 'ladder') initLadderScreen();
   } catch(e) {
     log('Championship error: ' + e.message, 'loss');
   } finally {
@@ -710,7 +813,7 @@ async function showTacticShop() {
   disableActions('Loading shop...');
   try {
     const tactics = await api('GET', '/catalog/tactics');
-    const dash = await api('GET', `/bots/${currentBotId}/dashboard`);
+    const dash = window._lastDashboard || await api('GET', `/bots/${currentBotId}/dashboard`);
     const owned = new Set((dash.tactics || []).map(t => t.key));
     const botLevel = dash.stats.level;
     const pts = dash.training.pointsRemaining;
@@ -752,7 +855,6 @@ async function showTacticShop() {
 
     shopList.innerHTML = html;
     shopPanel.classList.remove('hidden');
-    shopPanel.scrollIntoView({ behavior: 'smooth' });
     enableActions();
   } catch(e) {
     log('Shop error: ' + e.message, 'loss');
@@ -781,11 +883,11 @@ async function doDrill() {
   closeFloatingPanels();
   disableActions('Drilling...');
   try {
-    const dash = await api('GET', `/bots/${currentBotId}/dashboard`);
+    const dash = window._lastDashboard || await api('GET', `/bots/${currentBotId}/dashboard`);
     if (!dash.tactics || dash.tactics.length === 0) { log('No tactics to drill. Buy one first!', 'dim'); return; }
     const t = dash.tactics[0];
-    const r = await api('POST', `/bots/${currentBotId}/train/drill`, { tactic_key: t.tacticKey });
-    log(`Drilled ${t.tacticKey}: proficiency now ${r.tactic.proficiency}%`, 'info');
+    const r = await api('POST', `/bots/${currentBotId}/train/drill`, { tactic_key: t.tacticKey || t.key });
+    log(`Drilled ${t.tacticKey || t.key}: proficiency now ${r.tactic.proficiency}%`, 'info');
     await refreshDashboard();
   } catch(e) { log('Drill error: ' + e.message, 'loss'); enableActions(); }
 }
@@ -823,7 +925,6 @@ async function doLevelTest() {
     log(`  Elo: ${r.newElo - r.eloChange} \u2192 ${r.newElo} (${eloSign}${r.eloChange})  |  XP: +${r.xpGained}${r.bonusPoints > 0 ? `  |  Bonus: +${r.bonusPoints} training pts` : ''}`, 'dim');
 
     if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
-    // Show splash screen for level test
     if (typeof showSplash === 'function') {
       if (r.passed) {
         showSplash({
@@ -875,9 +976,9 @@ checkHealth();
 const IS_DEV = new URLSearchParams(window.location.search).has('dev');
 if (IS_DEV) {
   const devObs = new MutationObserver(() => {
-    if (!document.getElementById('dashPanel').classList.contains('hidden')) {
+    if (currentScreen === 'home') {
       document.getElementById('devPanel').classList.remove('hidden');
     }
   });
-  devObs.observe(document.getElementById('dashPanel'), { attributes: true });
+  devObs.observe(document.getElementById('homeScreen'), { attributes: true });
 }

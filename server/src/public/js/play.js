@@ -170,7 +170,9 @@ function closePlay() {
   setBoardActive(false);
   clientChess = null;
   playSession = null;
-  refreshDashboard();
+  if (typeof showScreen === 'function') {
+    showScreen('home');
+  }
 }
 
 function replayLastPlay() {
@@ -183,13 +185,12 @@ function replayLastPlay() {
 // Start / Resign Play
 // ===================================================================
 function startPlay() {
-  closeFloatingPanels();
+  if (typeof closeFloatingPanels === 'function') closeFloatingPanels();
   if (!window.Chess) {
     log('Chess engine still loading, please wait...', 'dim');
     return;
   }
   document.getElementById('colorPickPanel').classList.remove('hidden');
-  document.getElementById('colorPickPanel').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function beginPlay(color) {
@@ -219,7 +220,7 @@ async function beginPlay(color) {
 
     resetPlayControls();
     document.getElementById('playPanel').classList.remove('hidden');
-    document.getElementById('replayPanel').classList.add('hidden');
+    if (typeof closeFloatingPanels === 'function') closeFloatingPanels();
     setBoardActive(true);
     renderPlayBoard();
 
@@ -240,6 +241,8 @@ async function resignGame() {
     clientChess = null;
     document.getElementById('playPanel').classList.add('hidden');
     setBoardActive(false);
-    await refreshDashboard();
+    if (typeof showScreen === 'function') {
+      showScreen('home');
+    }
   } catch(e) { log('Resign error: ' + e.message, 'loss'); }
 }
