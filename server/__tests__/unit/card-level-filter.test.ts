@@ -39,54 +39,62 @@ describe('CardService level filtering', () => {
   })
 
   describe('randomDrawFiltered', () => {
-    it('level 1 bot should only draw spar, focus, rest cards', () => {
+    it('level 1 bot should only draw sharpen, focus, rest cards', () => {
       const cards = cardService.randomDrawFiltered(100, 1)
       const uniqueKeys = new Set(cards.map(c => c.key))
-      expect(uniqueKeys).toContain('spar')
+      expect(uniqueKeys).toContain('sharpen')
       expect(uniqueKeys).toContain('focus')
       expect(uniqueKeys).toContain('rest')
-      expect(uniqueKeys).not.toContain('drill')       // unlocked at L2
-      expect(uniqueKeys).not.toContain('study')        // unlocked at L3
-      expect(uniqueKeys).not.toContain('scout')        // unlocked at L3
-      expect(uniqueKeys).not.toContain('power_spar')   // unlocked at L4
-      expect(uniqueKeys).not.toContain('deep_drill')   // unlocked at L4
-      expect(uniqueKeys).not.toContain('analyze')      // unlocked at L5
-      expect(uniqueKeys).not.toContain('challenge')    // unlocked at L5
+      expect(uniqueKeys).not.toContain('iron_defense')     // unlocked at L2
+      expect(uniqueKeys).not.toContain('tactical_focus')   // unlocked at L3
+      expect(uniqueKeys).not.toContain('meditation')       // unlocked at L5
     })
 
-    it('level 2 bot should also draw drill', () => {
+    it('level 2 bot should also draw iron_defense, opening_prep, lucky_break', () => {
       const cards = cardService.randomDrawFiltered(100, 2)
       const uniqueKeys = new Set(cards.map(c => c.key))
-      expect(uniqueKeys).toContain('spar')
+      expect(uniqueKeys).toContain('sharpen')
       expect(uniqueKeys).toContain('focus')
       expect(uniqueKeys).toContain('rest')
-      expect(uniqueKeys).toContain('drill')
-      expect(uniqueKeys).not.toContain('study')        // unlocked at L3
-      expect(uniqueKeys).not.toContain('power_spar')   // unlocked at L4
+      expect(uniqueKeys).toContain('iron_defense')
+      expect(uniqueKeys).toContain('opening_prep')
+      expect(uniqueKeys).toContain('lucky_break')
+      expect(uniqueKeys).not.toContain('tactical_focus')   // unlocked at L3
     })
 
-    it('level 3 bot should also draw study and scout', () => {
+    it('level 3 bot should also draw tactical_focus, aggression_surge, scout, haste', () => {
       const cards = cardService.randomDrawFiltered(100, 3)
       const uniqueKeys = new Set(cards.map(c => c.key))
-      expect(uniqueKeys).toContain('drill')
-      expect(uniqueKeys).toContain('study')
+      expect(uniqueKeys).toContain('tactical_focus')
+      expect(uniqueKeys).toContain('aggression_surge')
       expect(uniqueKeys).toContain('scout')
-      expect(uniqueKeys).not.toContain('power_spar')   // unlocked at L4
+      expect(uniqueKeys).toContain('haste')
+      expect(uniqueKeys).not.toContain('endgame_study')    // unlocked at L4
     })
 
-    it('level 4 bot should also draw power_spar and deep_drill', () => {
+    it('level 4 bot should also draw endgame_study and second_wind', () => {
       const cards = cardService.randomDrawFiltered(100, 4)
       const uniqueKeys = new Set(cards.map(c => c.key))
-      expect(uniqueKeys).toContain('power_spar')
-      expect(uniqueKeys).toContain('deep_drill')
-      expect(uniqueKeys).not.toContain('analyze')      // unlocked at L5
-      expect(uniqueKeys).not.toContain('challenge')    // unlocked at L5
+      expect(uniqueKeys).toContain('endgame_study')
+      expect(uniqueKeys).toContain('second_wind')
+      expect(uniqueKeys).not.toContain('meditation')       // unlocked at L5
+      expect(uniqueKeys).not.toContain('adrenaline')       // unlocked at L5
     })
 
-    it('level 5 bot should draw all 10 card types', () => {
+    it('level 5 bot should also draw meditation and adrenaline', () => {
       const cards = cardService.randomDrawFiltered(200, 5)
       const uniqueKeys = new Set(cards.map(c => c.key))
-      expect(uniqueKeys.size).toBe(10)
+      expect(uniqueKeys).toContain('meditation')
+      expect(uniqueKeys).toContain('adrenaline')
+      expect(uniqueKeys).not.toContain('deep_thought')     // unlocked at L6
+      expect(uniqueKeys.size).toBe(14)
+    })
+
+    it('level 6+ bot should draw all 15 card types', () => {
+      const cards = cardService.randomDrawFiltered(200, 6)
+      const uniqueKeys = new Set(cards.map(c => c.key))
+      expect(uniqueKeys).toContain('deep_thought')
+      expect(uniqueKeys.size).toBe(15)
     })
 
     it('should return HandCard objects with all required fields', () => {
@@ -98,6 +106,7 @@ describe('CardService level filtering', () => {
         expect(card.name).toBeTruthy()
         expect(typeof card.energy).toBe('number')
         expect(card.type).toBeTruthy()
+        expect(card.category).toBeTruthy()
         expect(card.color).toBeTruthy()
         expect(card.description).toBeTruthy()
       }
@@ -123,13 +132,19 @@ describe('CardService level filtering', () => {
     it('should only draw level-appropriate cards for level 1 bot', () => {
       const hand = cardService.drawHand(botId)
       const invalidKeys = hand.cards.filter(c =>
-        !['spar', 'focus', 'rest'].includes(c.key)
+        !['sharpen', 'focus', 'rest'].includes(c.key)
       )
       expect(invalidKeys).toHaveLength(0)
     })
 
     it('should throw for non-existent bot', () => {
       expect(() => cardService.drawHand(99999)).toThrow('Bot not found')
+    })
+
+    it('should include activeBuffs and activePowerups in state', () => {
+      const hand = cardService.drawHand(botId)
+      expect(hand.activeBuffs).toEqual([])
+      expect(hand.activePowerups).toEqual([])
     })
   })
 
@@ -181,8 +196,11 @@ describe('CardService level filtering', () => {
       expect(hand.energy).toBe(5)
     })
 
-    it('should throw if no hand exists', () => {
-      expect(() => cardService.addEnergy(99999, 1)).toThrow()
+    it('should auto-create hand if none exists', () => {
+      // No drawHand called first — addEnergy should handle it
+      cardService.addEnergy(botId, 2)
+      const hand = cardService.getHandState(botId)
+      expect(hand.energy).toBe(2)
     })
   })
 
@@ -245,6 +263,21 @@ describe('CardService level filtering', () => {
       cardService.setWinStreak(botId, 3)
       cardService.setWinStreak(botId, 0)
       expect(cardService.getWinStreak(botId)).toBe(0)
+    })
+  })
+
+  describe('consumeBuffsForFight', () => {
+    it('should return empty buffs/powerups when none queued', () => {
+      cardService.drawHand(botId)
+      const { buffs, powerups } = cardService.consumeBuffsForFight(botId)
+      expect(buffs).toEqual([])
+      expect(powerups).toEqual([])
+    })
+
+    it('should return empty when no hand exists', () => {
+      const { buffs, powerups } = cardService.consumeBuffsForFight(botId)
+      expect(buffs).toEqual([])
+      expect(powerups).toEqual([])
     })
   })
 })

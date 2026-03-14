@@ -106,6 +106,8 @@ export function initializeDb(dbPath?: string) {
       energy INTEGER NOT NULL,
       max_energy INTEGER NOT NULL,
       hand_json TEXT NOT NULL DEFAULT '[]',
+      active_buffs_json TEXT NOT NULL DEFAULT '[]',
+      active_powerups_json TEXT NOT NULL DEFAULT '[]',
       cards_played_this_round INTEGER NOT NULL DEFAULT 0,
       win_streak INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
@@ -153,8 +155,10 @@ export function initializeDb(dbPath?: string) {
     CREATE INDEX IF NOT EXISTS idx_game_records_context ON game_records(context);
   `)
 
-  // Migration for existing DBs: add win_streak column to card_hands
+  // Migrations for existing DBs
   try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN win_streak INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN active_buffs_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
+  try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN active_powerups_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
 
   return database
 }

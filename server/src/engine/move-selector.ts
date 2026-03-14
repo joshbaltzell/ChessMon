@@ -3,6 +3,7 @@ import type { StockfishPool } from './stockfish-pool.js'
 import type { PreferenceModel } from '../ml/preference-model.js'
 import { extractFeaturesBatch } from '../ml/feature-extractor.js'
 import { Chess } from 'chess.js'
+import { tryLuckyBreak, type PowerupState } from './buff-resolver.js'
 
 export interface MoveSelectorContext {
   mlModel?: PreferenceModel | null
@@ -17,6 +18,7 @@ export async function selectMove(
   params: PlayParameters,
   pool: StockfishPool,
   context?: MoveSelectorContext,
+  powerupState?: PowerupState,
 ): Promise<{ san: string; uci?: string; candidates: CandidateMove[] }> {
   const legalMoves = chess.moves()
   if (legalMoves.length === 0) {
@@ -40,9 +42,11 @@ export async function selectMove(
   }
 
   // Step 2: Blunder check
-  // BALANCE: Aggression-focused bots skip blunders when forcing moves exist
+  // Lucky Break powerup: skip the blunder entirely
   if (params.blunderRate > 0 && Math.random() < params.blunderRate) {
-    if (params.aggressionFocused) {
+    if (powerupState && tryLuckyBreak(powerupState)) {
+      // Lucky Break consumed — skip this blunder
+    } else if (params.aggressionFocused) {
       // Check if any forcing move (capture or check) exists — if so, skip the blunder
       const hasForcingMove = legalMoves.some(m => {
         try {

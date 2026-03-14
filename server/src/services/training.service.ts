@@ -3,6 +3,7 @@ import { bots, botTactics, trainingLog, gameRecords } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { StockfishPool } from '../engine/stockfish-pool.js'
 import { simulateGame } from '../engine/game-simulator.js'
+import { applyBuffs, type ActiveBuff, type ActivePowerup } from '../engine/buff-resolver.js'
 import { botToPlayParameters, systemBotPlayParameters } from '../models/bot-intelligence.js'
 import { calculateEloChange } from '../models/elo.js'
 import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR, getXpForSpar } from '../models/progression.js'
@@ -454,7 +455,12 @@ export class TrainingService {
    * Card-based spar: runs a spar game WITHOUT deducting training points.
    * The card system handles energy costs. xpMultiplier allows Power Spar (2x).
    */
-  async cardSpar(botId: number, opponentLevel: number, xpMultiplier: number = 1) {
+  async cardSpar(
+    botId: number,
+    opponentLevel: number,
+    xpMultiplier: number = 1,
+    cardEffects?: { buffs: ActiveBuff[]; powerups: ActivePowerup[] },
+  ) {
     const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
     if (!bot) throw new Error('Bot not found')
 
@@ -465,7 +471,13 @@ export class TrainingService {
 
     const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
     const openingBook = getBestOpeningBook(botTacticsOwned)
-    const botParams = botToPlayParameters(bot, openingBook)
+    let botParams = botToPlayParameters(bot, openingBook)
+
+    // Apply card buffs to bot parameters
+    if (cardEffects?.buffs && cardEffects.buffs.length > 0) {
+      botParams = applyBuffs(botParams, cardEffects.buffs)
+    }
+
     const mlModel = await loadModel(this.db, botId)
 
     const botContext: MoveSelectorContext = {
@@ -489,6 +501,8 @@ export class TrainingService {
     const gameResult = await simulateGame(whiteParams, blackParams, this.pool, {
       whiteContext: botIsWhite ? botContext : undefined,
       blackContext: botIsWhite ? undefined : botContext,
+      botPowerups: cardEffects?.powerups,
+      botColor,
     })
 
     // ML Training (with replay buffer for persistent memory)
@@ -606,6 +620,9 @@ export class TrainingService {
     // Ensure hand exists (auto-creates if needed)
     cardService.getHandState(botId)
 
+    // Consume any queued buffs/powerups for this fight
+    const { buffs, powerups } = cardService.consumeBuffsForFight(botId)
+
     // Easy opponent: one level below, minimum 1
     const opponentLevel = Math.max(1, bot.level - 1)
     const opponentParams = systemBotPlayParameters(opponentLevel)
@@ -615,7 +632,13 @@ export class TrainingService {
     // Build bot parameters
     const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
     const openingBook = getBestOpeningBook(botTacticsOwned)
-    const botParams = botToPlayParameters(bot, openingBook)
+    let botParams = botToPlayParameters(bot, openingBook)
+
+    // Apply card buffs
+    if (buffs.length > 0) {
+      botParams = applyBuffs(botParams, buffs)
+    }
+
     const mlModel = await loadModel(this.db, botId)
 
     const botContext: MoveSelectorContext = {
@@ -639,6 +662,8 @@ export class TrainingService {
     const gameResult = await simulateGame(whiteParams, blackParams, this.pool, {
       whiteContext: botIsWhite ? botContext : undefined,
       blackContext: botIsWhite ? undefined : botContext,
+      botPowerups: powerups.length > 0 ? powerups : undefined,
+      botColor,
     })
 
     // ML Training with reduced epochs (6 = 0.5x of normal 12)
@@ -738,6 +763,8 @@ export class TrainingService {
         pgn: gameResult.pgn, botPlayedWhite: botIsWhite, opponent: opponentDescription,
       },
       xpGained, eloChange, newElo, energyEarned, loot, streak,
+      buffsApplied: buffs.length,
+      powerupsApplied: powerups.length,
       keyMoments: recap.keyMoments,
       mlTraining: {
         samplesUsed: mlTrainingResult.samplesUsed,

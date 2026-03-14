@@ -86,6 +86,8 @@ export const cardHands = sqliteTable('card_hands', {
   energy: integer('energy').notNull(),
   maxEnergy: integer('max_energy').notNull(),
   handJson: text('hand_json').notNull().default('[]'), // JSON array of card objects
+  activeBuffsJson: text('active_buffs_json').notNull().default('[]'), // Queued preparation buffs
+  activePowerupsJson: text('active_powerups_json').notNull().default('[]'), // Queued fight powerups
   cardsPlayedThisRound: integer('cards_played_this_round').notNull().default(0),
   winStreak: integer('win_streak').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),

@@ -4,23 +4,36 @@
    ============================================================ */
 
 /**
+ * Category badge labels and colors.
+ */
+const CATEGORY_BADGES = {
+  preparation: { label: 'PREP', cls: 'badge-prep' },
+  powerup: { label: 'POWER', cls: 'badge-powerup' },
+  utility: { label: 'UTIL', cls: 'badge-utility' },
+};
+
+/**
  * Render a single card element from card data.
- * @param {Object} card - HandCard object {id, key, name, energy, type, color, icon, description, flavor}
+ * @param {Object} card - HandCard object {id, key, name, energy, category, type, color, icon, description, flavor, effect}
  * @param {Object} opts - Options: {disabled, onClick}
  * @returns {HTMLElement} The card DOM element
  */
 function renderCard(card, opts = {}) {
   const el = document.createElement('div');
-  el.className = 'card' + (opts.disabled ? ' disabled' : '');
+  const categoryClass = card.category ? ` card-${card.category}` : '';
+  el.className = 'card' + categoryClass + (opts.disabled ? ' disabled' : '');
   el.style.setProperty('--card-color', card.color);
   el.dataset.cardId = card.id;
   el.dataset.cardKey = card.key;
+  if (card.category) el.dataset.category = card.category;
 
   const energyClass = card.energy === 0 ? ' free' : '';
+  const badge = CATEGORY_BADGES[card.category] || { label: '', cls: '' };
 
   el.innerHTML = `
     <div class="card-header">
       <span class="card-icon">${card.icon}</span>
+      ${badge.label ? `<span class="card-badge ${badge.cls}">${badge.label}</span>` : ''}
       <span class="card-energy${energyClass}">${card.energy}</span>
     </div>
     <div class="card-body">

@@ -61,31 +61,36 @@ export const ATTRIBUTE_MIN = 0
 export const ATTRIBUTE_MAX = 20
 
 // --- Card System ---
-export type CardType = 'combat' | 'training' | 'knowledge' | 'insight' | 'utility'
+export type CardType = 'prep' | 'powerup' | 'utility'
+export type CardCategory = 'preparation' | 'powerup' | 'utility'
 
 export interface CardDefinition {
   key: string
   name: string
   energy: number
   count: number
+  category: CardCategory
   type: CardType
   color: string
   icon: string
   description: string
   flavor: string
   unlockedAtLevel: number
+  effect: Record<string, any>
 }
 
 export interface HandCard {
-  id: string        // unique instance id (e.g. "spar_3")
+  id: string        // unique instance id
   key: string       // card definition key
   name: string
   energy: number
+  category: CardCategory
   type: CardType
   color: string
   icon: string
   description: string
   flavor: string
+  effect: Record<string, any>
 }
 
 export interface HandState {
@@ -94,6 +99,8 @@ export interface HandState {
   maxEnergy: number
   roundNumber: number
   cardsPlayed: number
+  activeBuffs: any[]
+  activePowerups: any[]
 }
 
 // --- Loot & Championship ---

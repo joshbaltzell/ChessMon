@@ -6,6 +6,7 @@ let mockGetHandState: ReturnType<typeof vi.fn>
 let mockGetWinStreak: ReturnType<typeof vi.fn>
 let mockSetWinStreak: ReturnType<typeof vi.fn>
 let mockAddEnergy: ReturnType<typeof vi.fn>
+let mockConsumeBuffsForFight: ReturnType<typeof vi.fn>
 let mockRollLoot: ReturnType<typeof vi.fn>
 
 // Mock the expensive modules
@@ -53,6 +54,7 @@ vi.mock('../../src/services/card.service.js', () => {
     this.getWinStreak = (...args: any[]) => mockGetWinStreak(...args)
     this.setWinStreak = (...args: any[]) => mockSetWinStreak(...args)
     this.addEnergy = (...args: any[]) => mockAddEnergy(...args)
+    this.consumeBuffsForFight = (...args: any[]) => mockConsumeBuffsForFight(...args)
   }
   return { CardService }
 })
@@ -119,6 +121,7 @@ describe('quickSpar', () => {
     mockGetWinStreak = vi.fn().mockReturnValue(0)
     mockSetWinStreak = vi.fn()
     mockAddEnergy = vi.fn()
+    mockConsumeBuffsForFight = vi.fn().mockReturnValue({ buffs: [], powerups: [] })
     mockRollLoot = vi.fn().mockReturnValue({ type: 'none', data: null })
 
     mockDb = createMockDb()

@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { bots, cardHands } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { CardDefinition, HandCard, HandState } from '../types/index.js'
+import type { ActiveBuff, ActivePowerup } from '../engine/buff-resolver.js'
 import { LEVEL_CONFIGS } from '../models/progression.js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
@@ -10,24 +11,12 @@ import { dirname, join } from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Load card definitions
+// Load card definitions (v2 — preparation + powerup + utility)
 const cardsData = JSON.parse(
-  readFileSync(join(__dirname, '..', 'data', 'cards.json'), 'utf-8')
+  readFileSync(join(__dirname, '..', 'data', 'cards-v2.json'), 'utf-8')
 )
 const CARD_DEFINITIONS: CardDefinition[] = cardsData.cards
 
-// Build the card pool: each card appears `count` times
-function buildCardPool(): CardDefinition[] {
-  const pool: CardDefinition[] = []
-  for (const def of CARD_DEFINITIONS) {
-    for (let i = 0; i < def.count; i++) {
-      pool.push(def)
-    }
-  }
-  return pool
-}
-
-const CARD_POOL = buildCardPool()
 const HAND_SIZE = 7
 
 export class CardService {
@@ -40,22 +29,25 @@ export class CardService {
     let hand = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
 
     if (!hand) {
-      // Auto-draw first hand
       return this.drawHand(botId)
     }
 
     const cards: HandCard[] = JSON.parse(hand.handJson)
+    const activeBuffs: ActiveBuff[] = JSON.parse(hand.activeBuffsJson || '[]')
+    const activePowerups: ActivePowerup[] = JSON.parse(hand.activePowerupsJson || '[]')
     return {
       cards,
       energy: hand.energy,
       maxEnergy: hand.maxEnergy,
       roundNumber: hand.roundNumber,
       cardsPlayed: hand.cardsPlayedThisRound,
+      activeBuffs,
+      activePowerups,
     }
   }
 
   /**
-   * Draw a new hand of 7 random cards. Energy starts at 0 (earned via Quick Spars).
+   * Draw a new hand of 7 random cards. Energy starts at 0.
    */
   drawHand(botId: number): HandState {
     const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
@@ -64,17 +56,14 @@ export class CardService {
     const levelConfig = LEVEL_CONFIGS[bot.level]
     const maxEnergy = levelConfig?.trainingPoints ?? 10
 
-    // Randomly select 7 level-filtered cards from the pool
     const hand = this.randomDrawFiltered(HAND_SIZE, bot.level)
 
-    // Get current round number
     const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
     const roundNumber = existing ? existing.roundNumber + 1 : 1
 
     const handJson = JSON.stringify(hand)
 
     if (existing) {
-      // Update existing hand
       this.db.update(cardHands)
         .set({
           handJson,
@@ -82,12 +71,13 @@ export class CardService {
           maxEnergy,
           roundNumber,
           cardsPlayedThisRound: 0,
+          activeBuffsJson: '[]',
+          activePowerupsJson: '[]',
           createdAt: new Date(),
         })
         .where(eq(cardHands.botId, botId))
         .run()
     } else {
-      // Insert new hand
       this.db.insert(cardHands).values({
         botId,
         roundNumber,
@@ -104,18 +94,18 @@ export class CardService {
       maxEnergy,
       roundNumber,
       cardsPlayed: 0,
+      activeBuffs: [],
+      activePowerups: [],
     }
   }
 
   /**
-   * Refresh hand — draws new cards using level-filtered pool but PRESERVES current energy.
-   * Used by Rest card and "New Round" button.
+   * Refresh hand — draws new cards but PRESERVES energy and queued buffs/powerups.
    */
   refreshHand(botId: number): HandState {
     const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
 
     if (!existing) {
-      // No hand exists yet — just draw a new one (energy starts at 0)
       return this.drawHand(botId)
     }
 
@@ -128,7 +118,6 @@ export class CardService {
     this.db.update(cardHands)
       .set({
         handJson,
-        // energy is NOT changed — preserved from current state
         cardsPlayedThisRound: existing.cardsPlayedThisRound,
       })
       .where(eq(cardHands.botId, botId))
@@ -140,6 +129,8 @@ export class CardService {
       maxEnergy: existing.maxEnergy,
       roundNumber: existing.roundNumber,
       cardsPlayed: existing.cardsPlayedThisRound,
+      activeBuffs: JSON.parse(existing.activeBuffsJson || '[]'),
+      activePowerups: JSON.parse(existing.activePowerupsJson || '[]'),
     }
   }
 
@@ -149,10 +140,9 @@ export class CardService {
   addEnergy(botId: number, amount: number): void {
     let existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
     if (!existing) {
-      // Auto-create hand if none exists
       this.drawHand(botId)
       existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
-      if (!existing) return // Bot doesn't exist
+      if (!existing) return
     }
 
     this.db.update(cardHands)
@@ -165,7 +155,6 @@ export class CardService {
 
   /**
    * Append a card to the bot's hand if hand size < 10.
-   * Returns true if added, false if hand is full.
    */
   addCardToHand(botId: number, card: HandCard): boolean {
     const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
@@ -187,7 +176,7 @@ export class CardService {
   }
 
   /**
-   * Get win streak from card_hands row. Returns 0 if no hand exists.
+   * Get win streak from card_hands row.
    */
   getWinStreak(botId: number): number {
     const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
@@ -207,8 +196,8 @@ export class CardService {
 
   /**
    * Play a card from the hand by card instance ID.
-   * Returns the card that was played and updated hand state.
-   * Does NOT execute the card's effect — that's up to the caller.
+   * For prep/powerup cards, queues buffs/powerups instead of executing immediately.
+   * For utility cards, executes immediately (focus, rest, scout).
    */
   playCard(botId: number, cardId: string): { card: HandCard; hand: HandState } {
     const handRow = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
@@ -233,12 +222,43 @@ export class CardService {
     // Update energy
     let newEnergy = handRow.energy
     if (card.key === 'focus') {
-      newEnergy = Math.min(handRow.maxEnergy + 2, handRow.energy + 1) // Allow going slightly over max
+      newEnergy = Math.min(handRow.maxEnergy + 2, handRow.energy + 1)
     } else {
       newEnergy -= card.energy
     }
 
-    // Handle Rest card — discard hand and draw new one (level-filtered)
+    // Parse current buffs/powerups
+    const activeBuffs: ActiveBuff[] = JSON.parse(handRow.activeBuffsJson || '[]')
+    const activePowerups: ActivePowerup[] = JSON.parse(handRow.activePowerupsJson || '[]')
+
+    // Handle card by category
+    if (card.category === 'preparation' && card.effect?.buff) {
+      // Queue a preparation buff
+      activeBuffs.push({
+        id: card.id,
+        key: card.key,
+        name: card.name,
+        icon: card.icon,
+        buff: card.effect.buff,
+        value: card.effect.value,
+      })
+    } else if (card.category === 'powerup' && card.effect?.powerup) {
+      // Queue a powerup
+      activePowerups.push({
+        id: card.id,
+        key: card.key,
+        name: card.name,
+        icon: card.icon,
+        powerup: card.effect.powerup,
+        depthBonus: card.effect.depthBonus,
+        triggerMove: card.effect.triggerMove,
+        uses: card.effect.uses,
+        moves: card.effect.moves,
+        multiPv: card.effect.multiPv,
+      })
+    }
+
+    // Handle Rest card — discard hand and draw new one
     if (card.key === 'rest') {
       const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
       const botLevel = bot?.level ?? 1
@@ -247,6 +267,8 @@ export class CardService {
         .set({
           handJson: JSON.stringify(newCards),
           energy: newEnergy,
+          activeBuffsJson: JSON.stringify(activeBuffs),
+          activePowerupsJson: JSON.stringify(activePowerups),
           cardsPlayedThisRound: handRow.cardsPlayedThisRound + 1,
         })
         .where(eq(cardHands.botId, botId))
@@ -260,6 +282,8 @@ export class CardService {
           maxEnergy: handRow.maxEnergy,
           roundNumber: handRow.roundNumber,
           cardsPlayed: handRow.cardsPlayedThisRound + 1,
+          activeBuffs,
+          activePowerups,
         },
       }
     }
@@ -269,6 +293,8 @@ export class CardService {
       .set({
         handJson: JSON.stringify(cards),
         energy: newEnergy,
+        activeBuffsJson: JSON.stringify(activeBuffs),
+        activePowerupsJson: JSON.stringify(activePowerups),
         cardsPlayedThisRound: handRow.cardsPlayedThisRound + 1,
       })
       .where(eq(cardHands.botId, botId))
@@ -282,8 +308,35 @@ export class CardService {
         maxEnergy: handRow.maxEnergy,
         roundNumber: handRow.roundNumber,
         cardsPlayed: handRow.cardsPlayedThisRound + 1,
+        activeBuffs,
+        activePowerups,
       },
     }
+  }
+
+  /**
+   * Consume all active buffs and powerups for a fight.
+   * Returns the buffs and powerups, then clears them from the DB.
+   */
+  consumeBuffsForFight(botId: number): { buffs: ActiveBuff[]; powerups: ActivePowerup[] } {
+    const handRow = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+    if (!handRow) return { buffs: [], powerups: [] }
+
+    const buffs: ActiveBuff[] = JSON.parse(handRow.activeBuffsJson || '[]')
+    const powerups: ActivePowerup[] = JSON.parse(handRow.activePowerupsJson || '[]')
+
+    // Clear buffs and powerups after consumption
+    if (buffs.length > 0 || powerups.length > 0) {
+      this.db.update(cardHands)
+        .set({
+          activeBuffsJson: '[]',
+          activePowerupsJson: '[]',
+        })
+        .where(eq(cardHands.botId, botId))
+        .run()
+    }
+
+    return { buffs, powerups }
   }
 
   /**
@@ -333,11 +386,13 @@ export class CardService {
         key: def.key,
         name: def.name,
         energy: def.energy,
+        category: def.category,
         type: def.type as HandCard['type'],
         color: def.color,
         icon: def.icon,
         description: def.description,
         flavor: def.flavor,
+        effect: def.effect,
       })
     }
 
