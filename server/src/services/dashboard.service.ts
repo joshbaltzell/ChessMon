@@ -9,6 +9,7 @@ import { loadModel } from '../ml/model-store.js'
 import { probeStyle, type StyleProfile } from '../ml/style-probe.js'
 import { CardService } from './card.service.js'
 import { LadderService } from './ladder.service.js'
+import { ChampionshipService } from './championship.service.js'
 
 const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
 const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
@@ -119,6 +120,12 @@ export class DashboardService {
       }
     } catch { /* ML probe failed, non-critical */ }
 
+    const handState = this.getHandState(botId)
+    const ladderState = this.getLadderState(botId)
+    const streak = new CardService(this.db).getWinStreak(botId)
+    const championship = this.getChampionshipState(botId)
+    const contextCues = this.generateContextCues(bot, handState, ladderState)
+
     return {
       identity: {
         id: bot.id,
@@ -189,8 +196,11 @@ export class DashboardService {
         testGames: nextLevelConfig.testGames,
         winsRequired: nextLevelConfig.winsRequired,
       } : { message: 'Maximum level reached!' },
-      hand: this.getHandState(botId),
-      ladder: this.getLadderState(botId),
+      hand: handState,
+      ladder: ladderState,
+      streak,
+      championship,
+      contextCues,
     }
   }
 
@@ -201,6 +211,48 @@ export class DashboardService {
     } catch {
       return null
     }
+  }
+
+  private getChampionshipState(botId: number) {
+    try {
+      const championshipService = new ChampionshipService(this.db, null as any) // pool not needed for read-only
+      const activeBout = championshipService.getActiveBout(botId)
+      if (!activeBout) return null
+      return {
+        id: activeBout.id,
+        targetLevel: activeBout.targetLevel,
+        gamesPlayed: activeBout.gamesPlayed,
+        gamesWon: activeBout.gamesWon,
+        currentRound: activeBout.currentRound,
+        status: activeBout.status,
+      }
+    } catch {
+      return null
+    }
+  }
+
+  private generateContextCues(
+    bot: any,
+    handState: any,
+    ladderState: any,
+  ): { type: string; text: string } | null {
+    // If hand has cards and energy >= minimum card cost, suggest playing a card
+    if (handState && handState.cards && handState.cards.length > 0) {
+      const minCost = Math.min(...handState.cards.map((c: any) => c.energy))
+      if (handState.energy >= minCost && minCost > 0) {
+        return { type: 'energy_ready', text: 'Energy charged! Time for a card play?' }
+      }
+    }
+
+    // If bot elo >= 80% of next ladder opponent elo, suggest boss fight
+    if (ladderState && !ladderState.allDefeated) {
+      const nextOpp = ladderState.opponents.find((o: any) => !o.defeated)
+      if (nextOpp && bot.elo >= nextOpp.elo * 0.8) {
+        return { type: 'boss_ready', text: `Almost ready for ${nextOpp.name}...` }
+      }
+    }
+
+    return null
   }
 
   private getHandState(botId: number) {
