@@ -321,8 +321,15 @@ Tests use `DB_PATH=":memory:"` and a 2-worker Stockfish pool. The E2E test exerc
 - `request.user.playerId` available after authentication
 - Bot ownership check: load bot, verify `bot.playerId === request.user.playerId`
 
+### Formatting & Linting (root chess.js)
+- **Prettier**: no semicolons, single quotes, 80-char markdown, 2-space JSON
+- **ESLint**: strictCamelCase for identifiers, UPPER_CASE for constants, PascalCase for types, starred-block multiline comments
+- Root `npm run check` runs format + lint + test + build + api-extractor
+
 ### TypeScript
-- Strict mode enabled, ES2022 target
+- Strict mode enabled
+- Root chess.js: ESNext target, Node16 module
+- Server: ES2022 target, Node16 module resolution
 - `type` imports used for type-only imports
 - Server and root chess.js have separate tsconfig files
 
@@ -337,6 +344,21 @@ Tests use `DB_PATH=":memory:"` and a 2-worker Stockfish pool. The E2E test exerc
 - **Archetype models are pre-generated offline** — run `npx tsx src/ml/generate-archetypes.ts` to regenerate
 - **Card system is the primary training interface** — replaces direct training point spending
 - **Ladder + championship replaces level tests** as the primary progression path
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/node.js.yml`):
+- Triggers on push/PR to `master`
+- Tests against Node.js 20.x, 22.x, 24.x on ubuntu-latest
+- Runs `npm ci` then `npm run check` (format + lint + vitest + build + api-extractor)
+- This is for the **root chess.js library only** — server tests are not included in CI
+
+## Frontend
+
+A vanilla HTML/CSS/JS frontend exists in `server/src/public/` served via `@fastify/static`:
+- `index.html` — main entry point
+- `css/` — 9 stylesheets: board, cards, hand, ladder, layout, log, splash, terrarium, theme
+- `js/` — 12 modules: app, board, cards, dev, hand, ladder, log, pixel-art, play, replay, splash, terrarium
 
 ## What's Next (potential improvements)
 
