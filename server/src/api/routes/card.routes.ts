@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify'
+import { eq } from 'drizzle-orm'
 import { CardService } from '../../services/card.service.js'
 import { BotService } from '../../services/bot.service.js'
 import { LadderService } from '../../services/ladder.service.js'
 import { getDb } from '../../db/connection.js'
+import { bots } from '../../db/schema.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { botIdParamSchema, playCardSchema, parseOrThrow } from '../schemas/validation.js'
 
@@ -109,13 +111,28 @@ export function createCardRoutes(pool: StockfishPool) {
                 }
                 break
               }
-              case 'haste':
+              case 'haste': {
+                const reduction = card.effect?.reduction || 60
+                // Apply timer reduction directly
+                const bot = botService.getById(botId)
+                if (bot?.nextFreeSparAt) {
+                  const currentNext = new Date(bot.nextFreeSparAt).getTime()
+                  const now = Date.now()
+                  if (currentNext > now) {
+                    const newNext = new Date(Math.max(now, currentNext - reduction * 1000))
+                    db.update(bots)
+                      .set({ nextFreeSparAt: newNext })
+                      .where(eq(bots.id, botId))
+                      .run()
+                  }
+                }
                 effect = {
                   action: 'haste_applied',
-                  message: 'Next spar cooldown reduced by 60s!',
-                  reduction: card.effect?.reduction || 60,
+                  message: `Next spar cooldown reduced by ${reduction}s!`,
+                  reduction,
                 }
                 break
+              }
               default:
                 effect = { action: 'unknown' }
             }

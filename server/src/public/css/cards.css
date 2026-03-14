@@ -355,3 +355,20 @@
   font-weight: bold;
   text-shadow: 0 0 8px var(--neon-orange);
 }
+
+/* Spar timer */
+.spar-timer {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  min-width: 50px;
+}
+
+.btn-quick-spar.spar-ready {
+  animation: sparPulse 2s ease-in-out infinite;
+}
+
+@keyframes sparPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 136, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+}

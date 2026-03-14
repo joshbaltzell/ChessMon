@@ -159,6 +159,8 @@ export function initializeDb(dbPath?: string) {
   try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN win_streak INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN active_buffs_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
   try { rawDb.exec(`ALTER TABLE card_hands ADD COLUMN active_powerups_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
+  try { rawDb.exec(`ALTER TABLE bots ADD COLUMN next_free_spar_at INTEGER`) } catch {}
+  try { rawDb.exec(`ALTER TABLE bots ADD COLUMN spar_timer_seconds INTEGER NOT NULL DEFAULT 300`) } catch {}
 
   return database
 }

@@ -27,6 +27,8 @@ export const bots = sqliteTable('bots', {
   alignmentStyle: text('alignment_style').notNull(),   // 'chaotic' | 'positional' | 'sacrificial'
 
   trainingPointsRemaining: integer('training_points_remaining').notNull().default(10),
+  nextFreeSparAt: integer('next_free_spar_at', { mode: 'timestamp' }),
+  sparTimerSeconds: integer('spar_timer_seconds').notNull().default(300),
   mlWeightsBlob: blob('ml_weights_blob', { mode: 'buffer' }),
   mlReplayBuffer: blob('ml_replay_buffer', { mode: 'buffer' }),
   asciiTier: integer('ascii_tier').notNull().default(1),

@@ -8,6 +8,8 @@ let currentBotId = null;
 let sparInProgress = false;
 let previousElo = null;
 let lastSparPgn = null;
+let sparTimerInterval = null;
+let sparTimerReadyAt = 0; // timestamp when spar becomes available
 
 // Screen state
 let currentScreen = null;
@@ -268,6 +270,9 @@ async function refreshDashboard() {
   if (d.hand && typeof displayHand === 'function' && currentScreen === 'prep') {
     displayHand(d.hand);
   }
+
+  // Refresh spar timer
+  refreshSparTimer();
 }
 
 function updateContextBanner(d) {
@@ -606,17 +611,104 @@ async function doSpar(opponentLevel) {
 }
 
 // ===================================================================
+// Spar Timer
+// ===================================================================
+async function refreshSparTimer() {
+  if (!currentBotId) return;
+  try {
+    const timer = await api('GET', `/bots/${currentBotId}/spar-timer`);
+    if (timer.ready) {
+      sparTimerReadyAt = 0;
+      updateSparTimerUI(0);
+    } else {
+      sparTimerReadyAt = Date.now() + timer.remainingMs;
+      startSparTimerCountdown();
+    }
+
+    // Update streak display
+    const streakEl = document.getElementById('streakDisplay');
+    if (streakEl && timer.streak > 0) {
+      streakEl.textContent = `${timer.streak}x streak`;
+      streakEl.classList.toggle('hot-streak', timer.streak >= 3);
+    } else if (streakEl) {
+      streakEl.textContent = '';
+    }
+  } catch(e) {
+    // Timer endpoint not available, treat as ready
+    sparTimerReadyAt = 0;
+    updateSparTimerUI(0);
+  }
+}
+
+function startSparTimerCountdown() {
+  if (sparTimerInterval) clearInterval(sparTimerInterval);
+  sparTimerInterval = setInterval(() => {
+    const remaining = Math.max(0, sparTimerReadyAt - Date.now());
+    updateSparTimerUI(remaining);
+    if (remaining <= 0) {
+      clearInterval(sparTimerInterval);
+      sparTimerInterval = null;
+    }
+  }, 1000);
+  // Run immediately
+  updateSparTimerUI(Math.max(0, sparTimerReadyAt - Date.now()));
+}
+
+function updateSparTimerUI(remainingMs) {
+  const btn = document.getElementById('quickSparBtn');
+  const timerEl = document.getElementById('sparTimer');
+
+  if (remainingMs <= 0) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '\u2694 Quick Spar';
+      btn.classList.add('spar-ready');
+    }
+    if (timerEl) timerEl.textContent = 'Ready!';
+  } else {
+    const secs = Math.ceil(remainingMs / 1000);
+    const mins = Math.floor(secs / 60);
+    const sec = secs % 60;
+    const timeStr = `${mins}:${sec.toString().padStart(2, '0')}`;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = `\u23F3 ${timeStr}`;
+      btn.classList.remove('spar-ready');
+    }
+    if (timerEl) timerEl.textContent = timeStr;
+  }
+}
+
+// ===================================================================
 // Quick Spar
 // ===================================================================
 async function doQuickSpar() {
   if (sparInProgress) return;
+
+  // Check timer client-side
+  if (sparTimerReadyAt > Date.now()) {
+    log('Spar timer not ready yet!', 'dim');
+    return;
+  }
+
   sparInProgress = true;
   disableActions('Quick Spar...');
   try {
     const r = await api('POST', `/bots/${currentBotId}/quick-spar`);
+
+    // Start timer for next spar
+    if (r.nextSparIn) {
+      sparTimerReadyAt = Date.now() + r.nextSparIn * 1000;
+      startSparTimerCountdown();
+    }
+
     showQuickSparResult(r);
     await refreshDashboard();
   } catch(e) {
+    if (e.message?.includes('timer')) {
+      refreshSparTimer();
+    }
     log('Quick Spar failed: ' + e.message, 'loss');
   } finally {
     sparInProgress = false;
