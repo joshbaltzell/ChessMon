@@ -5,7 +5,9 @@ import type { StockfishPool } from '../engine/stockfish-pool.js'
 import { simulateGame } from '../engine/game-simulator.js'
 import { botToPlayParameters, systemBotPlayParameters } from '../models/bot-intelligence.js'
 import { calculateEloChange } from '../models/elo.js'
-import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR } from '../models/progression.js'
+import { SPAR_COST, PURCHASE_TACTIC_COST, DRILL_COST, XP_PER_SPAR, getXpForSpar } from '../models/progression.js'
+import { CardService } from './card.service.js'
+import { LootService } from './loot.service.js'
 import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { loadModel, getOrCreateModel } from '../ml/model-store.js'
 import { probeStyle, computeStyleShift, type StyleProfile, type StyleProbeResult } from '../ml/style-probe.js'
@@ -289,7 +291,7 @@ export class TrainingService {
       blackContext: botIsWhite ? undefined : botContext,
     })
 
-    // ML Training
+    // ML Training (with replay buffer for persistent memory)
     const mlTrainingResult = await trainBotFromGame(
       this.db, botId, gameResult.positions, gameResult.result, botColor,
       {
@@ -297,7 +299,14 @@ export class TrainingService {
         tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity,
         alignmentAttack: bot.alignmentAttack, alignmentStyle: bot.alignmentStyle,
       },
+      bot.mlReplayBuffer,
     )
+
+    // Save updated replay buffer
+    this.db.update(bots)
+      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
+      .where(eq(bots.id, botId))
+      .run()
 
     // Elo change
     const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
@@ -486,6 +495,7 @@ export class TrainingService {
       blackContext: botIsWhite ? undefined : botContext,
     })
 
+    // ML Training (with replay buffer for persistent memory)
     const mlTrainingResult = await trainBotFromGame(
       this.db, botId, gameResult.positions, gameResult.result, botColor,
       {
@@ -493,7 +503,14 @@ export class TrainingService {
         tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity,
         alignmentAttack: bot.alignmentAttack, alignmentStyle: bot.alignmentStyle,
       },
+      bot.mlReplayBuffer,
     )
+
+    // Save updated replay buffer
+    this.db.update(bots)
+      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
+      .where(eq(bots.id, botId))
+      .run()
 
     const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
     const newElo = Math.max(100, bot.elo + eloChange)
@@ -581,6 +598,172 @@ export class TrainingService {
     return {
       tactic: { key: tacticKey, proficiency: newProficiency },
       emotion,
+    }
+  }
+
+  /**
+   * Quick Spar: a free spar action that grants energy, manages streaks, and rolls loot.
+   * Uses an easy opponent (max(1, bot.level - 1)) and reduced ML training epochs.
+   */
+  async quickSpar(botId: number) {
+    const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
+    if (!bot) throw new Error('Bot not found')
+
+    const cardService = new CardService(this.db)
+    const lootService = new LootService(this.db)
+
+    // Ensure hand exists (auto-creates if needed)
+    cardService.getHandState(botId)
+
+    // Easy opponent: one level below, minimum 1
+    const opponentLevel = Math.max(1, bot.level - 1)
+    const opponentParams = systemBotPlayParameters(opponentLevel)
+    const opponentElo = (opponentLevel * 100) + 300
+    const opponentDescription = `System Bot Level ${opponentLevel}`
+
+    // Build bot parameters
+    const botTacticsOwned = this.db.select().from(botTactics).where(eq(botTactics.botId, botId)).all()
+    const openingBook = getBestOpeningBook(botTacticsOwned)
+    const botParams = botToPlayParameters(bot, openingBook)
+    const mlModel = await loadModel(this.db, botId)
+
+    const botContext: MoveSelectorContext = {
+      mlModel,
+      botColor: undefined,
+      botAttributes: {
+        aggression: bot.aggression, positional: bot.positional,
+        tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity,
+      },
+      alignmentAttack: ALIGNMENT_ATTACK_MAP[bot.alignmentAttack] ?? 1,
+      alignmentStyle: ALIGNMENT_STYLE_MAP[bot.alignmentStyle] ?? 1,
+    }
+
+    const botIsWhite = Math.random() < 0.5
+    const botColor = botIsWhite ? 'w' as const : 'b' as const
+    botContext.botColor = botColor
+
+    const whiteParams = botIsWhite ? botParams : opponentParams
+    const blackParams = botIsWhite ? opponentParams : botParams
+
+    const gameResult = await simulateGame(whiteParams, blackParams, this.pool, {
+      whiteContext: botIsWhite ? botContext : undefined,
+      blackContext: botIsWhite ? undefined : botContext,
+    })
+
+    // ML Training with reduced epochs (6 = 0.5x of normal 12)
+    const mlTrainingResult = await trainBotFromGame(
+      this.db, botId, gameResult.positions, gameResult.result, botColor,
+      {
+        aggression: bot.aggression, positional: bot.positional,
+        tactical: bot.tactical, endgame: bot.endgame, creativity: bot.creativity,
+        alignmentAttack: bot.alignmentAttack, alignmentStyle: bot.alignmentStyle,
+      },
+      bot.mlReplayBuffer,
+      { epochs: 6 },
+    )
+
+    // Save updated replay buffer
+    this.db.update(bots)
+      .set({ mlReplayBuffer: mlTrainingResult.updatedReplayBuffer })
+      .where(eq(bots.id, botId))
+      .run()
+
+    // Determine outcome
+    const botWon = (gameResult.result === '1-0' && botIsWhite) || (gameResult.result === '0-1' && !botIsWhite)
+    const botLost = (gameResult.result === '1-0' && !botIsWhite) || (gameResult.result === '0-1' && botIsWhite)
+    const outcome: 'win' | 'loss' | 'draw' = botWon ? 'win' : botLost ? 'loss' : 'draw'
+
+    // Elo
+    const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
+    const newElo = Math.max(100, bot.elo + eloChange)
+
+    // XP using level-specific table
+    const xpGained = getXpForSpar(bot.level, outcome, 1)
+
+    // Win streak management
+    let streak = cardService.getWinStreak(botId)
+    if (botWon) {
+      streak += 1
+      cardService.setWinStreak(botId, streak)
+    } else if (botLost) {
+      streak = 0
+      cardService.setWinStreak(botId, 0)
+    }
+    // Draw: streak unchanged
+
+    // Energy: +1 base
+    let energyEarned = 1
+    cardService.addEnergy(botId, 1)
+
+    // Streak bonus: +2 energy at streak >= 3
+    if (streak >= 3) {
+      energyEarned += 2
+      cardService.addEnergy(botId, 2)
+    }
+
+    // Loot
+    const loot = lootService.rollLoot(botId, bot.level)
+    if (loot.type === 'energy' && loot.data?.amount) {
+      energyEarned += loot.data.amount
+      cardService.addEnergy(botId, loot.data.amount)
+    }
+
+    // Store game record
+    const gameRecord = this.db.insert(gameRecords).values({
+      whiteBotId: botIsWhite ? botId : null,
+      blackBotId: botIsWhite ? null : botId,
+      whiteSystemLevel: botIsWhite ? null : opponentLevel,
+      blackSystemLevel: botIsWhite ? opponentLevel : null,
+      pgn: gameResult.pgn, result: gameResult.result,
+      moveCount: gameResult.moveCount, context: 'training',
+    }).returning().get()
+
+    // Update bot stats — NO training point deduction
+    this.db.update(bots)
+      .set({
+        elo: newElo,
+        gamesPlayed: bot.gamesPlayed + 1,
+        xp: bot.xp + xpGained,
+      })
+      .where(eq(bots.id, botId))
+      .run()
+
+    // Training log
+    this.db.insert(trainingLog).values({
+      botId, level: bot.level, actionType: 'spar',
+      detailsJson: JSON.stringify({
+        opponent: opponentDescription, opponentElo, botIsWhite, quickSpar: true,
+      }),
+      resultJson: JSON.stringify({
+        result: gameResult.result, eloChange, moveCount: gameResult.moveCount,
+        gameRecordId: gameRecord.id, xpGained, energyEarned, streak, loot,
+        mlTraining: {
+          samplesUsed: mlTrainingResult.samplesUsed,
+          finalLoss: mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] ?? null,
+        },
+      }),
+    }).run()
+
+    // Emotion + recap
+    const emotion = generateEmotionResponse(
+      outcome, 'spar',
+      bot.alignmentAttack, bot.alignmentStyle, bot.level, gameResult.moveCount,
+    )
+
+    const recap = generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle)
+
+    return {
+      game: {
+        id: gameRecord.id, result: gameResult.result, moveCount: gameResult.moveCount,
+        pgn: gameResult.pgn, botPlayedWhite: botIsWhite, opponent: opponentDescription,
+      },
+      xpGained, eloChange, newElo, energyEarned, loot, streak,
+      keyMoments: recap.keyMoments,
+      mlTraining: {
+        samplesUsed: mlTrainingResult.samplesUsed,
+        finalLoss: mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] ?? null,
+      },
+      emotion, recap,
     }
   }
 
