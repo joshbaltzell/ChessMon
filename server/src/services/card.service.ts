@@ -55,7 +55,7 @@ export class CardService {
   }
 
   /**
-   * Draw a new hand of 7 random cards. Resets energy to bot's training points.
+   * Draw a new hand of 7 random cards. Energy starts at 0 (earned via Quick Spars).
    */
   drawHand(botId: number): HandState {
     const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
@@ -64,8 +64,8 @@ export class CardService {
     const levelConfig = LEVEL_CONFIGS[bot.level]
     const maxEnergy = levelConfig?.trainingPoints ?? 10
 
-    // Randomly select 7 cards from the pool
-    const hand = this.randomDraw(HAND_SIZE)
+    // Randomly select 7 level-filtered cards from the pool
+    const hand = this.randomDrawFiltered(HAND_SIZE, bot.level)
 
     // Get current round number
     const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
@@ -78,7 +78,7 @@ export class CardService {
       this.db.update(cardHands)
         .set({
           handJson,
-          energy: maxEnergy,
+          energy: 0,
           maxEnergy,
           roundNumber,
           cardsPlayedThisRound: 0,
@@ -91,7 +91,7 @@ export class CardService {
       this.db.insert(cardHands).values({
         botId,
         roundNumber,
-        energy: maxEnergy,
+        energy: 0,
         maxEnergy,
         handJson,
         cardsPlayedThisRound: 0,
@@ -100,11 +100,104 @@ export class CardService {
 
     return {
       cards: hand,
-      energy: maxEnergy,
+      energy: 0,
       maxEnergy,
       roundNumber,
       cardsPlayed: 0,
     }
+  }
+
+  /**
+   * Refresh hand — draws new cards using level-filtered pool but PRESERVES current energy.
+   * Used by Rest card and "New Round" button.
+   */
+  refreshHand(botId: number): HandState {
+    const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+
+    if (!existing) {
+      // No hand exists yet — just draw a new one (energy starts at 0)
+      return this.drawHand(botId)
+    }
+
+    const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
+    if (!bot) throw new Error('Bot not found')
+
+    const newCards = this.randomDrawFiltered(HAND_SIZE, bot.level)
+    const handJson = JSON.stringify(newCards)
+
+    this.db.update(cardHands)
+      .set({
+        handJson,
+        // energy is NOT changed — preserved from current state
+        cardsPlayedThisRound: existing.cardsPlayedThisRound,
+      })
+      .where(eq(cardHands.botId, botId))
+      .run()
+
+    return {
+      cards: newCards,
+      energy: existing.energy,
+      maxEnergy: existing.maxEnergy,
+      roundNumber: existing.roundNumber,
+      cardsPlayed: existing.cardsPlayedThisRound,
+    }
+  }
+
+  /**
+   * Increment energy in the card_hands row.
+   */
+  addEnergy(botId: number, amount: number): void {
+    const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+    if (!existing) throw new Error('No hand found. Draw cards first.')
+
+    this.db.update(cardHands)
+      .set({
+        energy: existing.energy + amount,
+      })
+      .where(eq(cardHands.botId, botId))
+      .run()
+  }
+
+  /**
+   * Append a card to the bot's hand if hand size < 10.
+   * Returns true if added, false if hand is full.
+   */
+  addCardToHand(botId: number, card: HandCard): boolean {
+    const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+    if (!existing) return false
+
+    const cards: HandCard[] = JSON.parse(existing.handJson)
+    if (cards.length >= 10) return false
+
+    cards.push(card)
+
+    this.db.update(cardHands)
+      .set({
+        handJson: JSON.stringify(cards),
+      })
+      .where(eq(cardHands.botId, botId))
+      .run()
+
+    return true
+  }
+
+  /**
+   * Get win streak from card_hands row. Returns 0 if no hand exists.
+   */
+  getWinStreak(botId: number): number {
+    const existing = this.db.select().from(cardHands).where(eq(cardHands.botId, botId)).get()
+    if (!existing) return 0
+    return existing.winStreak ?? 0
+  }
+
+  /**
+   * Set win streak in card_hands row.
+   */
+  setWinStreak(botId: number, streak: number): void {
+    this.db.update(cardHands)
+      .set({ winStreak: streak })
+      .where(eq(cardHands.botId, botId))
+      .run()
   }
 
   /**
@@ -140,10 +233,11 @@ export class CardService {
       newEnergy -= card.energy
     }
 
-    // Handle Rest card — discard hand and draw new one
+    // Handle Rest card — discard hand and draw new one (level-filtered)
     if (card.key === 'rest') {
-      // Draw a fresh hand but keep the same round number and energy
-      const newCards = this.randomDraw(HAND_SIZE)
+      const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
+      const botLevel = bot?.level ?? 1
+      const newCards = this.randomDrawFiltered(HAND_SIZE, botLevel)
       this.db.update(cardHands)
         .set({
           handJson: JSON.stringify(newCards),
@@ -195,7 +289,45 @@ export class CardService {
   }
 
   /**
-   * Randomly draw `count` cards from the full pool.
+   * Draw `count` cards from the pool, filtered to only cards unlocked at or below `botLevel`.
+   */
+  randomDrawFiltered(count: number, botLevel: number): HandCard[] {
+    const filteredDefs = CARD_DEFINITIONS.filter(def => (def.unlockedAtLevel || 1) <= botLevel)
+    // Build a level-filtered pool respecting card counts
+    const pool: CardDefinition[] = []
+    for (const def of filteredDefs) {
+      for (let i = 0; i < def.count; i++) {
+        pool.push(def)
+      }
+    }
+
+    const hand: HandCard[] = []
+    const instanceCounts: Record<string, number> = {}
+
+    for (let i = 0; i < count && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length)
+      const def = pool.splice(idx, 1)[0]
+
+      instanceCounts[def.key] = (instanceCounts[def.key] || 0) + 1
+
+      hand.push({
+        id: `${def.key}_${instanceCounts[def.key]}_${Date.now()}_${i}`,
+        key: def.key,
+        name: def.name,
+        energy: def.energy,
+        type: def.type as HandCard['type'],
+        color: def.color,
+        icon: def.icon,
+        description: def.description,
+        flavor: def.flavor,
+      })
+    }
+
+    return hand
+  }
+
+  /**
+   * Randomly draw `count` cards from the full pool (no level filtering).
    */
   private randomDraw(count: number): HandCard[] {
     const pool = [...CARD_POOL]
