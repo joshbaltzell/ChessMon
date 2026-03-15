@@ -70,7 +70,8 @@ export const gameRecords = sqliteTable('game_records', {
   pgn: text('pgn').notNull(),
   result: text('result').notNull(), // '1-0' | '0-1' | '1/2-1/2'
   moveCount: integer('move_count').notNull(),
-  context: text('context').notNull(), // 'training' | 'level_test' | 'human_play'
+  context: text('context').notNull(), // 'training' | 'level_test' | 'human_play' | 'pvp'
+  recapJson: text('recap_json'), // JSON-serialized MatchRecap (nullable for old records)
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
@@ -147,3 +148,12 @@ export const dailyQuests = sqliteTable('daily_quests', {
   rewardAmount: integer('reward_amount').notNull().default(2),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
+
+export const botAchievements = sqliteTable('bot_achievements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  botId: integer('bot_id').notNull().references(() => bots.id),
+  achievementKey: text('achievement_key').notNull(),
+  unlockedAt: integer('unlocked_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  uniqueIndex('bot_achievement_unique').on(table.botId, table.achievementKey),
+])

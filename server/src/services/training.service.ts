@@ -149,6 +149,12 @@ export class TrainingService {
     const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
     const newElo = Math.max(100, bot.elo + eloChange)
 
+    // Generate match recap
+    const recap = generateMatchRecap(
+      gameResult.positions, gameResult.result, botColor,
+      bot.alignmentAttack, bot.alignmentStyle,
+    )
+
     // Store game record
     const gameRecord = this.db.insert(gameRecords).values({
       whiteBotId: botIsWhite ? botId : (opponentBotId || null),
@@ -159,6 +165,7 @@ export class TrainingService {
       result: gameResult.result,
       moveCount: gameResult.moveCount,
       context: 'training',
+      recapJson: JSON.stringify(recap),
     }).returning().get()
 
     // Update bot stats + save replay buffer (after game record for atomicity)
@@ -231,13 +238,7 @@ export class TrainingService {
         styleShift: styleProbeResult?.shift ?? null,
       },
       emotion,
-      recap: generateMatchRecap(
-        gameResult.positions,
-        gameResult.result,
-        botColor,
-        bot.alignmentAttack,
-        bot.alignmentStyle,
-      ),
+      recap,
     }
   }
 
@@ -257,7 +258,8 @@ export class TrainingService {
     const eloChange = calculateEloChange(bot.elo, opponentElo, gameResult.result, botIsWhite)
     const newElo = Math.max(100, bot.elo + eloChange)
 
-    // Store game record first, then update replay buffer
+    // Generate recap + store game record first, then update replay buffer
+    const recap = generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle)
     const gameRecord = this.db.insert(gameRecords).values({
       whiteBotId: botIsWhite ? botId : null,
       blackBotId: botIsWhite ? null : botId,
@@ -265,6 +267,7 @@ export class TrainingService {
       blackSystemLevel: botIsWhite ? level : null,
       pgn: gameResult.pgn, result: gameResult.result,
       moveCount: gameResult.moveCount, context: 'training',
+      recapJson: JSON.stringify(recap),
     }).returning().get()
 
     // Save replay buffer after game record (fixes ordering bug)
@@ -520,6 +523,8 @@ export class TrainingService {
     const newElo = Math.max(100, bot.elo + eloChange)
     const xpGained = XP_PER_SPAR * xpMultiplier
 
+    const recap = generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle)
+
     const gameRecord = this.db.insert(gameRecords).values({
       whiteBotId: botIsWhite ? botId : null,
       blackBotId: botIsWhite ? null : botId,
@@ -527,6 +532,7 @@ export class TrainingService {
       blackSystemLevel: botIsWhite ? level : null,
       pgn: gameResult.pgn, result: gameResult.result,
       moveCount: gameResult.moveCount, context: 'training',
+      recapJson: JSON.stringify(recap),
     }).returning().get()
 
     // Update bot stats + replay buffer (after game record for atomicity)
@@ -567,7 +573,7 @@ export class TrainingService {
         finalLoss: mlTrainingResult.epochLosses[mlTrainingResult.epochLosses.length - 1] ?? null,
       },
       emotion,
-      recap: generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle),
+      recap,
     }
   }
 
@@ -712,6 +718,14 @@ export class TrainingService {
 
     cardService.addEnergy(botId, energyEarned)
 
+    // Emotion + recap
+    const emotion = generateEmotionResponse(
+      outcome, 'spar',
+      bot.alignmentAttack, bot.alignmentStyle, bot.level, gameResult.moveCount,
+    )
+
+    const recap = generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle)
+
     // Store game record
     const gameRecord = this.db.insert(gameRecords).values({
       whiteBotId: botIsWhite ? botId : null,
@@ -720,6 +734,7 @@ export class TrainingService {
       blackSystemLevel: botIsWhite ? opponentLevel : null,
       pgn: gameResult.pgn, result: gameResult.result,
       moveCount: gameResult.moveCount, context: 'training',
+      recapJson: JSON.stringify(recap),
     }).returning().get()
 
     // Update bot stats + replay buffer (after game record for atomicity)
@@ -758,14 +773,6 @@ export class TrainingService {
       if (eloChange > 0) questService.incrementQuest(botId, 'gain_elo', eloChange)
       if (streak >= 3) questService.incrementQuest(botId, 'win_streak', 1)
     } catch { /* non-critical */ }
-
-    // Emotion + recap
-    const emotion = generateEmotionResponse(
-      outcome, 'spar',
-      bot.alignmentAttack, bot.alignmentStyle, bot.level, gameResult.moveCount,
-    )
-
-    const recap = generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle)
 
     return {
       game: {

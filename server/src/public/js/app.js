@@ -8,6 +8,7 @@ let currentBotId = null;
 let sparInProgress = false;
 let previousElo = null;
 let lastSparPgn = null;
+let lastSparRecap = null;
 let sparTimerInterval = null;
 let sparTimerReadyAt = 0; // timestamp when spar becomes available
 
@@ -236,6 +237,9 @@ async function refreshDashboard() {
   const d = await api('GET', `/bots/${currentBotId}/dashboard`);
   window._lastDashboard = d;
 
+  // Check for new achievements
+  if (typeof checkNewAchievements === 'function') checkNewAchievements(d);
+
   // Render terrarium (bot enclosure with aura, mood, attrs)
   if (typeof renderTerrarium === 'function') {
     renderTerrarium(d);
@@ -281,7 +285,7 @@ async function refreshDashboard() {
   const replayBtn = document.getElementById('lastSparReplayBtn');
   if (replayBtn) {
     replayBtn.innerHTML = lastSparPgn
-      ? '<button class="secondary" onclick="startReplay(lastSparPgn)">Replay Last Spar</button>'
+      ? '<button class="secondary" onclick="startReplay(lastSparPgn, lastSparRecap)">Replay Last Spar</button>'
       : '';
   }
 
@@ -530,6 +534,9 @@ function closeFloatingPanels() {
   document.getElementById('brainPanel').classList.add('hidden');
   document.getElementById('replayPanel').classList.add('hidden');
   document.getElementById('helpPanel').classList.add('hidden');
+  document.getElementById('openingExplorerPanel').classList.add('hidden');
+  document.getElementById('challengePickerPanel').classList.add('hidden');
+  document.getElementById('achievementPanel').classList.add('hidden');
   if (typeof sparAnimTimer !== 'undefined' && sparAnimTimer) {
     if (typeof closeSparAnim === 'function') closeSparAnim();
   }
@@ -608,6 +615,7 @@ async function doSpar(opponentLevel) {
     if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
     if (r.game && r.game.pgn) {
       lastSparPgn = r.game.pgn;
+      lastSparRecap = r.recap || null;
       if (window.Chess) {
         const botWon = cls === 'win';
         const resultLabel = `${won} in ${r.game.moveCount} moves`;
@@ -770,6 +778,7 @@ function showQuickSparResult(r) {
 
   if (r.game && r.game.pgn) {
     lastSparPgn = r.game.pgn;
+    lastSparRecap = r.recap || null;
   }
 
   if (previousElo !== null) {
@@ -1004,6 +1013,9 @@ async function showTacticShop() {
       let actionHtml;
       if (isOwned) {
         actionHtml = '<span style="color:var(--neon-green);font-size:0.85rem">Owned \u2713</span>';
+        if (isOpening) {
+          actionHtml += ` <button class="secondary" style="font-size:0.75rem;padding:2px 8px" onclick="openOpeningExplorer('${t.key}')">Explore</button>`;
+        }
       } else if (isLocked) {
         actionHtml = `<span style="color:var(--text-dim);font-size:0.8rem">\uD83D\uDD12 Level ${t.minLevel}</span>`;
       } else if (pts < 3) {
@@ -1043,6 +1055,130 @@ async function buyTactic(key, name) {
 
 function closeTacticShop() {
   document.getElementById('tacticShopPanel').classList.add('hidden');
+}
+
+// ===================================================================
+// Bot-vs-Bot Challenge
+// ===================================================================
+async function showChallengePicker() {
+  closeFloatingPanels();
+  try {
+    const data = await api('GET', '/bots/leaderboard?limit=50');
+    const leaderboard = data.bots || data;
+    const panel = document.getElementById('challengePickerPanel');
+    const list = document.getElementById('challengeList');
+
+    // Filter out own bots
+    const opponents = leaderboard.filter(b => b.id !== currentBotId);
+
+    if (opponents.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem">No opponents available yet.</p>';
+    } else {
+      let html = '';
+      for (const b of opponents) {
+        html += `<div class="challenge-card">
+          <div class="challenge-bot-info">
+            <strong>${escHtml(b.name)}</strong>
+            <span style="color:var(--text-dim);font-size:0.8rem">Lv.${b.level} · Elo ${b.elo}</span>
+          </div>
+          <button onclick="doChallenge(${b.id}, '${escAttr(b.name)}')">Challenge</button>
+        </div>`;
+      }
+      list.innerHTML = html;
+    }
+    panel.classList.remove('hidden');
+  } catch (e) {
+    log('Failed to load opponents: ' + e.message, 'loss');
+  }
+}
+
+function closeChallengePanel() {
+  document.getElementById('challengePickerPanel').classList.add('hidden');
+}
+
+async function doChallenge(opponentBotId, opponentName) {
+  closeChallengePanel();
+  disableActions('Challenging ' + opponentName + '...');
+  try {
+    const r = await api('POST', `/bots/${currentBotId}/challenge`, { opponent_bot_id: opponentBotId });
+    const won = r.challengerWon ? 'Won' : r.game.result === '1/2-1/2' ? 'Drew' : 'Lost';
+    const cls = r.challengerWon ? 'win' : r.game.result === '1/2-1/2' ? 'info' : 'loss';
+    log(`PvP vs ${opponentName}: ${won}! (${r.game.result} in ${r.game.moveCount} moves)`, cls);
+    log(`Elo: ${r.challengerNewElo} (${r.challengerEloChange >= 0 ? '+' : ''}${r.challengerEloChange})`, 'dim');
+    if (r.emotion) log(`${r.emotion.face} "${r.emotion.message}"`, 'info');
+
+    if (r.game && r.game.pgn) {
+      lastSparPgn = r.game.pgn;
+      lastSparRecap = r.recap || null;
+      if (window.Chess) {
+        const resultLabel = `${won} vs ${opponentName}`;
+        startSparAnim(r.game.pgn, opponentName, resultLabel, r.challengerWon);
+      }
+    }
+
+    if (typeof showSplash === 'function') {
+      showSplash({
+        type: r.challengerWon ? 'victory' : r.game.result === '1/2-1/2' ? 'draw' : 'defeat',
+        title: r.challengerWon ? 'VICTORY!' : r.game.result === '1/2-1/2' ? 'DRAW' : 'DEFEAT',
+        subtitle: `vs ${opponentName}`,
+        details: `Elo ${r.challengerEloChange >= 0 ? '+' : ''}${r.challengerEloChange}`,
+      });
+    }
+
+    await refreshDashboard();
+  } catch (e) {
+    log('Challenge error: ' + e.message, 'loss');
+  }
+  enableActions();
+}
+
+// ===================================================================
+// Achievements
+// ===================================================================
+function showAchievements() {
+  closeFloatingPanels();
+  const dash = window._lastDashboard;
+  if (!dash || !dash.achievements) {
+    log('No achievement data yet', 'dim');
+    return;
+  }
+
+  const list = document.getElementById('achievementList');
+  let html = '';
+  for (const a of dash.achievements) {
+    const cls = a.unlocked ? 'unlocked' : 'locked';
+    html += `<div class="achievement-card ${cls}">
+      <span class="achievement-icon">${a.icon}</span>
+      <div class="achievement-name">${escHtml(a.name)}</div>
+      <div class="achievement-desc">${escHtml(a.description)}</div>
+    </div>`;
+  }
+  list.innerHTML = html;
+  document.getElementById('achievementPanel').classList.remove('hidden');
+}
+
+function closeAchievements() {
+  document.getElementById('achievementPanel').classList.add('hidden');
+}
+
+function showAchievementToast(name, icon) {
+  const toast = document.getElementById('achievementToast');
+  if (!toast) return;
+  toast.innerHTML = `${icon} Achievement Unlocked: <strong>${escHtml(name)}</strong>`;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 4000);
+}
+
+function checkNewAchievements(dashboard) {
+  if (!dashboard.newAchievements || dashboard.newAchievements.length === 0) return;
+  const all = dashboard.achievements || [];
+  for (const key of dashboard.newAchievements) {
+    const a = all.find(x => x.key === key);
+    if (a) {
+      showAchievementToast(a.name, a.icon);
+      log(`Achievement Unlocked: ${a.icon} ${a.name}`, 'info');
+    }
+  }
 }
 
 // ===================================================================

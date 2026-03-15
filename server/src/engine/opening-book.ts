@@ -52,6 +52,21 @@ export function getBestOpeningBook(
 }
 
 /**
+ * Get full opening data by key (for the explorer UI).
+ */
+export function getOpeningDetail(tacticKey: string) {
+  const opening = openingsByKey.get(tacticKey)
+  if (!opening) return null
+  return {
+    key: opening.key,
+    name: opening.name,
+    category: opening.category,
+    minLevel: opening.minLevel,
+    positions: opening.positions,
+  }
+}
+
+/**
  * Get all available openings for the catalog.
  */
 export function getAllOpenings() {

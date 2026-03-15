@@ -84,7 +84,8 @@ export function initializeDb(dbPath?: string) {
       pgn TEXT NOT NULL,
       result TEXT NOT NULL CHECK(result IN ('1-0', '0-1', '1/2-1/2')),
       move_count INTEGER NOT NULL,
-      context TEXT NOT NULL CHECK(context IN ('training', 'level_test', 'human_play')),
+      context TEXT NOT NULL CHECK(context IN ('training', 'level_test', 'human_play', 'pvp')),
+      recap_json TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
@@ -162,6 +163,14 @@ export function initializeDb(dbPath?: string) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS bot_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bot_id INTEGER NOT NULL REFERENCES bots(id),
+      achievement_key TEXT NOT NULL,
+      unlocked_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(bot_id, achievement_key)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_bots_player_id ON bots(player_id);
     CREATE INDEX IF NOT EXISTS idx_bots_elo ON bots(elo);
     CREATE INDEX IF NOT EXISTS idx_bots_level ON bots(level);
@@ -178,6 +187,14 @@ export function initializeDb(dbPath?: string) {
   try { rawDb.exec(`ALTER TABLE bots ADD COLUMN auto_fight_results_json TEXT NOT NULL DEFAULT '[]'`) } catch {}
   try { rawDb.exec(`ALTER TABLE bots ADD COLUMN daily_check_in_streak INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { rawDb.exec(`ALTER TABLE bots ADD COLUMN last_check_in_date TEXT`) } catch {}
+  try { rawDb.exec(`ALTER TABLE game_records ADD COLUMN recap_json TEXT`) } catch {}
+  try { rawDb.exec(`CREATE TABLE IF NOT EXISTS bot_achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bot_id INTEGER NOT NULL REFERENCES bots(id),
+    achievement_key TEXT NOT NULL,
+    unlocked_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(bot_id, achievement_key)
+  )`) } catch {}
 
   return database
 }

@@ -11,6 +11,7 @@ import {
 import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { loadModel } from '../ml/model-store.js'
 import { generateEmotionResponse } from '../models/personality.js'
+import { generateMatchRecap } from '../models/battle-commentary.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
 import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP, type GameResult } from '../types/index.js'
@@ -149,6 +150,7 @@ export class LevelTestService {
       else if (botLost) losses++
       else draws++
 
+      const recap = generateMatchRecap(gameResult.positions, gameResult.result, botColor, bot.alignmentAttack, bot.alignmentStyle)
       const gameRecord = this.db.insert(gameRecords).values({
         whiteBotId: botIsWhite ? botId : (opponent.botId || null),
         blackBotId: botIsWhite ? (opponent.botId || null) : botId,
@@ -158,6 +160,7 @@ export class LevelTestService {
         result: gameResult.result,
         moveCount: gameResult.moveCount,
         context: 'level_test',
+        recapJson: JSON.stringify(recap),
       }).returning().get()
 
       games.push({

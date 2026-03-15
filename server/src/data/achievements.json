@@ -1,0 +1,24 @@
+{
+  "achievements": [
+    { "key": "first_spar", "name": "First Steps", "description": "Complete your first spar", "category": "training", "icon": "⚔", "condition": { "type": "games_played", "threshold": 1 } },
+    { "key": "win_10", "name": "Getting Warmer", "description": "Win 10 games", "category": "combat", "icon": "🏆", "condition": { "type": "wins", "threshold": 10 } },
+    { "key": "win_50", "name": "Veteran", "description": "Win 50 games", "category": "combat", "icon": "⭐", "condition": { "type": "wins", "threshold": 50 } },
+    { "key": "streak_5", "name": "On Fire", "description": "Reach a 5-game win streak", "category": "combat", "icon": "🔥", "condition": { "type": "win_streak", "threshold": 5 } },
+    { "key": "streak_10", "name": "Unstoppable", "description": "Reach a 10-game win streak", "category": "combat", "icon": "💥", "condition": { "type": "win_streak", "threshold": 10 } },
+    { "key": "level_5", "name": "Apprentice", "description": "Reach level 5", "category": "progression", "icon": "📈", "condition": { "type": "level", "threshold": 5 } },
+    { "key": "level_10", "name": "Journeyman", "description": "Reach level 10", "category": "progression", "icon": "📊", "condition": { "type": "level", "threshold": 10 } },
+    { "key": "level_15", "name": "Expert", "description": "Reach level 15", "category": "progression", "icon": "🎯", "condition": { "type": "level", "threshold": 15 } },
+    { "key": "level_20", "name": "Grandmaster", "description": "Reach level 20", "category": "progression", "icon": "👑", "condition": { "type": "level", "threshold": 20 } },
+    { "key": "elo_800", "name": "Rising Star", "description": "Reach 800 Elo", "category": "mastery", "icon": "⬆", "condition": { "type": "elo", "threshold": 800 } },
+    { "key": "elo_1200", "name": "Club Player", "description": "Reach 1200 Elo", "category": "mastery", "icon": "♟", "condition": { "type": "elo", "threshold": 1200 } },
+    { "key": "elo_1600", "name": "Tournament Ready", "description": "Reach 1600 Elo", "category": "mastery", "icon": "♚", "condition": { "type": "elo", "threshold": 1600 } },
+    { "key": "elo_2000", "name": "Master Class", "description": "Reach 2000 Elo", "category": "mastery", "icon": "🏅", "condition": { "type": "elo", "threshold": 2000 } },
+    { "key": "first_opening", "name": "Scholar", "description": "Purchase your first opening", "category": "training", "icon": "📖", "condition": { "type": "openings_owned", "threshold": 1 } },
+    { "key": "drill_master", "name": "Drill Master", "description": "Max out an opening's proficiency", "category": "training", "icon": "🎓", "condition": { "type": "max_proficiency", "threshold": 100 } },
+    { "key": "first_boss", "name": "Boss Slayer", "description": "Defeat your first ladder boss", "category": "combat", "icon": "🗡", "condition": { "type": "bosses_defeated", "threshold": 1 } },
+    { "key": "pilot_ace", "name": "Ace Pilot", "description": "Win 5 pilot mode games", "category": "training", "icon": "✈", "condition": { "type": "pilot_wins", "threshold": 5 } },
+    { "key": "pvp_first", "name": "Challenger", "description": "Win your first PvP match", "category": "social", "icon": "🤝", "condition": { "type": "pvp_wins", "threshold": 1 } },
+    { "key": "pvp_10", "name": "Arena Champion", "description": "Win 10 PvP matches", "category": "social", "icon": "🏟", "condition": { "type": "pvp_wins", "threshold": 10 } },
+    { "key": "week_streak", "name": "Dedicated", "description": "Maintain a 7-day login streak", "category": "progression", "icon": "📅", "condition": { "type": "daily_streak", "threshold": 7 } }
+  ]
+}

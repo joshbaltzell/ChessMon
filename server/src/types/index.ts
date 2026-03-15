@@ -1,6 +1,6 @@
 export type AlignmentAttack = 'aggressive' | 'balanced' | 'defensive'
 export type AlignmentStyle = 'chaotic' | 'positional' | 'sacrificial'
-export type GameContext = 'training' | 'level_test' | 'human_play'
+export type GameContext = 'training' | 'level_test' | 'human_play' | 'pvp'
 export type GameResult = '1-0' | '0-1' | '1/2-1/2'
 export type TrainingActionType = 'spar' | 'purchase_tactic' | 'drill'
 

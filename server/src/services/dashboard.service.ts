@@ -11,17 +11,20 @@ import { CardService } from './card.service.js'
 import { LadderService } from './ladder.service.js'
 import { processAbsence, type AbsenceReport } from './auto-fight.service.js'
 import { DailyQuestService } from './daily-quest.service.js'
+import { AchievementService } from './achievement.service.js'
 import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP } from '../types/index.js'
 
 export class DashboardService {
   private cardService: CardService
   private ladderService: LadderService
   private dailyQuestService: DailyQuestService
+  private achievementService: AchievementService
 
   constructor(private db: DrizzleDb) {
     this.cardService = new CardService(db)
     this.ladderService = new LadderService(db)
     this.dailyQuestService = new DailyQuestService(db)
+    this.achievementService = new AchievementService(db)
   }
 
   async getBotDashboard(botId: number) {
@@ -185,6 +188,8 @@ export class DashboardService {
         moveCount: g.moveCount,
         context: g.context,
         wasWhite: g.whiteBotId === botId,
+        pgn: g.pgn,
+        recap: g.recapJson ? JSON.parse(g.recapJson) : null,
       })),
       levelTest: latestLevelTest ? {
         level: latestLevelTest.level,
@@ -213,6 +218,17 @@ export class DashboardService {
       overnightReport,
       dailyQuests,
       streakInfo,
+      achievements: this.achievementService.getAllWithStatus(botId),
+      newAchievements: this.checkAchievements(botId),
+    }
+  }
+
+  private checkAchievements(botId: number): string[] {
+    try {
+      const stats = this.achievementService.buildStats(botId)
+      return this.achievementService.checkAndAward(botId, stats)
+    } catch {
+      return []
     }
   }
 

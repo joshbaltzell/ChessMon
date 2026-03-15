@@ -131,6 +131,8 @@
     <div class="home-extras">
       <button class="secondary" onclick="showBotBrain()">Bot Brain</button>
       <button class="secondary" onclick="showTacticShop()">Tactic Shop</button>
+      <button class="secondary" onclick="showChallengePicker()">Challenge Bot</button>
+      <button class="secondary" onclick="showAchievements()">Achievements</button>
       <span id="lastSparReplayBtn"></span>
     </div>
 
@@ -303,7 +305,47 @@
       <button onclick="replayGoTo(replayMoves.length)" title="End">&#9197;</button>
     </div>
     <div class="replay-info" id="replayInfo"></div>
+    <div class="replay-commentary" id="replayCommentary"></div>
     <div class="move-list" id="replayMoveList"></div>
+  </div>
+
+  <!-- Achievement panel -->
+  <div class="floating-panel hidden" id="achievementPanel">
+    <div class="floating-panel-header">
+      <h2>Achievements</h2>
+      <button class="nav-close" onclick="closeAchievements()">&times;</button>
+    </div>
+    <div class="achievement-grid" id="achievementList"></div>
+  </div>
+
+  <!-- Achievement Toast -->
+  <div class="achievement-toast hidden" id="achievementToast"></div>
+
+  <!-- Challenge Picker panel -->
+  <div class="floating-panel hidden" id="challengePickerPanel">
+    <div class="floating-panel-header">
+      <h2>Challenge a Bot</h2>
+      <button class="nav-close" onclick="closeChallengePanel()">&times;</button>
+    </div>
+    <div id="challengeList"></div>
+  </div>
+
+  <!-- Opening Explorer panel -->
+  <div class="floating-panel hidden" id="openingExplorerPanel">
+    <div class="floating-panel-header">
+      <h2 id="explorerTitle">Opening Explorer</h2>
+      <button class="nav-close" onclick="closeOpeningExplorer()">&times;</button>
+    </div>
+    <div class="explorer-info" id="explorerInfo"></div>
+    <div class="chess-board-container" id="explorerBoardContainer">
+      <div class="board-wrapper">
+        <div class="rank-labels" id="explorerRankLabels"></div>
+        <div class="chess-board" id="explorerBoard"></div>
+      </div>
+      <div class="file-labels" id="explorerFileLabels"></div>
+    </div>
+    <div class="explorer-breadcrumb" id="explorerBreadcrumb"></div>
+    <div class="explorer-controls" id="explorerControls"></div>
   </div>
 
   <!-- Help / Guide panel -->
@@ -361,6 +403,7 @@
 <script src="/js/hand.js"></script>
 <script src="/js/splash.js"></script>
 <script src="/js/ladder.js"></script>
+<script src="/js/explorer.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

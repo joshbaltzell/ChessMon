@@ -7,7 +7,9 @@ let replayChess = null;
 let replayMoves = [];
 let replayIndex = 0;
 let lastSparPgn = null;
+let lastSparRecap = null;
 let replayAutoTimer = null;
+let replayRecap = null;  // Key moments indexed by half-move number
 
 // --- Spar animation state ---
 let sparAnimTimer = null;
@@ -90,7 +92,7 @@ function closeSparAnim() {
 // ===================================================================
 // Game Replay
 // ===================================================================
-function startReplay(pgn) {
+function startReplay(pgn, recap) {
   if (!window.Chess) {
     log('Chess engine still loading, please wait...', 'dim');
     return;
@@ -102,6 +104,16 @@ function startReplay(pgn) {
 
   replayChess = new Chess();
   replayIndex = 0;
+
+  // Index key moments by half-move number for O(1) lookup
+  replayRecap = null;
+  if (recap && recap.keyMoments && recap.keyMoments.length > 0) {
+    replayRecap = {};
+    for (const km of recap.keyMoments) {
+      const halfMove = (km.moveNumber - 1) * 2 + (km.color === 'b' ? 1 : 0) + 1;
+      replayRecap[halfMove] = km;
+    }
+  }
 
   document.getElementById('replayPanel').classList.remove('hidden');
   document.getElementById('playPanel').classList.add('hidden');
@@ -128,6 +140,16 @@ function renderReplayBoard() {
   });
 }
 
+function getAnnotationBadge(halfMove) {
+  if (!replayRecap || !replayRecap[halfMove]) return '';
+  const km = replayRecap[halfMove];
+  const badge = km.type === 'brilliant' ? '!' : km.type === 'blunder' ? '?' :
+                km.type === 'sacrifice' ? '†' : km.type === 'turning_point' ? '⚡' :
+                km.type === 'opening_book' ? '📖' : '';
+  if (!badge) return '';
+  return `<span class="move-annotation ${km.type}">${badge}</span>`;
+}
+
 function renderReplayMoveList() {
   const container = document.getElementById('replayMoveList');
   let html = '';
@@ -136,9 +158,9 @@ function renderReplayMoveList() {
     const whiteMove = replayMoves[i];
     const blackMove = replayMoves[i + 1];
     html += `<span class="move-num">${moveNum}.</span> `;
-    html += `<span class="move-san${replayIndex === i + 1 ? ' active' : ''}" onclick="replayGoTo(${i + 1})">${whiteMove.san}</span> `;
+    html += `<span class="move-san${replayIndex === i + 1 ? ' active' : ''}" onclick="replayGoTo(${i + 1})">${whiteMove.san}</span>${getAnnotationBadge(i + 1)} `;
     if (blackMove) {
-      html += `<span class="move-san${replayIndex === i + 2 ? ' active' : ''}" onclick="replayGoTo(${i + 2})">${blackMove.san}</span> `;
+      html += `<span class="move-san${replayIndex === i + 2 ? ' active' : ''}" onclick="replayGoTo(${i + 2})">${blackMove.san}</span>${getAnnotationBadge(i + 2)} `;
     }
   }
   container.innerHTML = html;
@@ -152,6 +174,19 @@ function updateReplayInfo() {
   document.getElementById('replayInfo').textContent =
     replayIndex === 0 ? 'Start position' :
     `Move ${replayIndex} of ${total}`;
+
+  // Show commentary for annotated moves
+  const commentaryEl = document.getElementById('replayCommentary');
+  if (commentaryEl) {
+    if (replayRecap && replayRecap[replayIndex]) {
+      const km = replayRecap[replayIndex];
+      commentaryEl.textContent = km.commentary;
+      commentaryEl.className = `replay-commentary ${km.type}`;
+    } else {
+      commentaryEl.textContent = '';
+      commentaryEl.className = 'replay-commentary';
+    }
+  }
 }
 
 function replayForward() {
@@ -211,6 +246,9 @@ function closeReplay() {
   replayChess = null;
   replayMoves = [];
   replayIndex = 0;
+  replayRecap = null;
+  const commentaryEl = document.getElementById('replayCommentary');
+  if (commentaryEl) { commentaryEl.textContent = ''; commentaryEl.className = 'replay-commentary'; }
 }
 
 // ===================================================================
