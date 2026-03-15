@@ -1,0 +1,172 @@
+{
+  "tactics": [
+    {
+      "key": "fork_basic",
+      "name": "Basic Fork",
+      "description": "Attack two pieces simultaneously with a knight or pawn",
+      "category": "tactical",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "pin_basic",
+      "name": "Basic Pin",
+      "description": "Pin a piece to the king or a more valuable piece",
+      "category": "tactical",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "skewer",
+      "name": "Skewer",
+      "description": "Attack a valuable piece to win the piece behind it",
+      "category": "tactical",
+      "minLevel": 3,
+      "cost": 3
+    },
+    {
+      "key": "discovered_attack",
+      "name": "Discovered Attack",
+      "description": "Move a piece to reveal an attack from another piece",
+      "category": "tactical",
+      "minLevel": 4,
+      "cost": 3
+    },
+    {
+      "key": "back_rank_mate",
+      "name": "Back Rank Mate",
+      "description": "Exploit a weak back rank to deliver checkmate",
+      "category": "tactical",
+      "minLevel": 3,
+      "cost": 3
+    },
+    {
+      "key": "sacrifice_exchange",
+      "name": "Exchange Sacrifice",
+      "description": "Give up the exchange (rook for bishop/knight) for positional advantage",
+      "category": "positional",
+      "minLevel": 6,
+      "cost": 3
+    },
+    {
+      "key": "outpost",
+      "name": "Outpost Play",
+      "description": "Establish pieces on strong outpost squares",
+      "category": "positional",
+      "minLevel": 5,
+      "cost": 3
+    },
+    {
+      "key": "pawn_storm",
+      "name": "Pawn Storm",
+      "description": "Advance pawns to attack the opponent's king position",
+      "category": "aggressive",
+      "minLevel": 5,
+      "cost": 3
+    },
+    {
+      "key": "fortress",
+      "name": "Fortress Defense",
+      "description": "Build an impregnable defensive position",
+      "category": "defensive",
+      "minLevel": 7,
+      "cost": 3
+    },
+    {
+      "key": "zwischenzug",
+      "name": "Zwischenzug",
+      "description": "Insert an unexpected intermediate move before the expected continuation",
+      "category": "tactical",
+      "minLevel": 8,
+      "cost": 3
+    },
+    {
+      "key": "king_walk",
+      "name": "King Walk",
+      "description": "Use the king actively in the endgame as an attacking piece",
+      "category": "endgame",
+      "minLevel": 6,
+      "cost": 3
+    },
+    {
+      "key": "opposite_bishops",
+      "name": "Opposite Color Bishops",
+      "description": "Exploit opposite-colored bishop endgames",
+      "category": "endgame",
+      "minLevel": 8,
+      "cost": 3
+    },
+    {
+      "key": "queen_sacrifice",
+      "name": "Queen Sacrifice",
+      "description": "Sacrifice the queen for a decisive advantage or forced mate",
+      "category": "tactical",
+      "minLevel": 10,
+      "cost": 3
+    },
+    {
+      "key": "prophylaxis",
+      "name": "Prophylaxis",
+      "description": "Prevent opponent's plans before executing your own",
+      "category": "positional",
+      "minLevel": 10,
+      "cost": 3
+    },
+    {
+      "key": "rook_endgame",
+      "name": "Rook Endgame Mastery",
+      "description": "Master Lucena, Philidor, and other key rook endgame techniques",
+      "category": "endgame",
+      "minLevel": 9,
+      "cost": 3
+    },
+    {
+      "key": "italian_game",
+      "name": "Italian Game Opening",
+      "description": "Learn the classical Italian Game with Bc4 targeting f7",
+      "category": "tactical",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "sicilian_defense",
+      "name": "Sicilian Defense Opening",
+      "description": "Master the aggressive Sicilian Defense with 1...c5",
+      "category": "aggressive",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "french_defense",
+      "name": "French Defense Opening",
+      "description": "Learn the solid French Defense with 1...e6",
+      "category": "positional",
+      "minLevel": 1,
+      "cost": 3
+    },
+    {
+      "key": "queens_gambit",
+      "name": "Queen's Gambit Opening",
+      "description": "Play the classic Queen's Gambit with d4 and c4",
+      "category": "positional",
+      "minLevel": 2,
+      "cost": 3
+    },
+    {
+      "key": "kings_indian",
+      "name": "King's Indian Defense Opening",
+      "description": "Learn the aggressive King's Indian with g6 and Bg7",
+      "category": "aggressive",
+      "minLevel": 3,
+      "cost": 3
+    },
+    {
+      "key": "london_system",
+      "name": "London System Opening",
+      "description": "Play the solid London System with Bf4",
+      "category": "defensive",
+      "minLevel": 2,
+      "cost": 3
+    }
+  ]
+}

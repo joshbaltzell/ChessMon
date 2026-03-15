@@ -1,0 +1,226 @@
+/* ============================================================
+   ChessMon — Mini-Boss Ladder (Punch-Out Style)
+   Vertical bracket with 3 opponents + championship bout
+   ============================================================ */
+
+.ladder-panel {
+  margin-top: 8px;
+}
+
+.ladder-title {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--neon-yellow);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-yellow) 40%, transparent);
+}
+
+/* Ladder bracket */
+.ladder-bracket {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+/* Vertical connector line */
+.ladder-bracket::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+/* Individual ladder opponent */
+.ladder-opponent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  position: relative;
+  z-index: 1;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ladder-opponent.defeated {
+  opacity: 0.5;
+  border-color: var(--neon-green);
+}
+
+.ladder-opponent.defeated .ladder-check {
+  color: var(--neon-green);
+  text-shadow: 0 0 6px var(--neon-green);
+}
+
+.ladder-opponent.current {
+  border-color: var(--neon-yellow);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--neon-yellow) 20%, transparent);
+  animation: ladderPulse 2s ease-in-out infinite;
+}
+
+.ladder-opponent.locked {
+  opacity: 0.3;
+}
+
+@keyframes ladderPulse {
+  0%, 100% { box-shadow: 0 0 10px color-mix(in srgb, var(--neon-yellow) 20%, transparent); }
+  50% { box-shadow: 0 0 18px color-mix(in srgb, var(--neon-yellow) 35%, transparent); }
+}
+
+/* Opponent number/status icon */
+.ladder-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ladder-opponent.defeated .ladder-icon {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+
+.ladder-opponent.current .ladder-icon {
+  border-color: var(--neon-yellow);
+  color: var(--neon-yellow);
+}
+
+/* Opponent info */
+.ladder-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ladder-name {
+  font-size: 0.7rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ladder-meta {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+
+.ladder-ability {
+  font-size: 0.55rem;
+  color: var(--neon-yellow);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.ladder-check {
+  font-size: 0.85rem;
+}
+
+/* Championship bout (level test) at the top */
+.ladder-championship {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  margin-top: 4px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ladder-championship.unlocked {
+  border-color: var(--neon-yellow);
+  background: color-mix(in srgb, var(--neon-yellow) 5%, var(--surface));
+  cursor: pointer;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--neon-yellow) 25%, transparent);
+  animation: championshipGlow 2s ease-in-out infinite;
+}
+
+.ladder-championship.locked {
+  opacity: 0.4;
+}
+
+@keyframes championshipGlow {
+  0%, 100% { box-shadow: 0 0 12px color-mix(in srgb, var(--neon-yellow) 25%, transparent); }
+  50% { box-shadow: 0 0 24px color-mix(in srgb, var(--neon-yellow) 40%, transparent); }
+}
+
+.ladder-championship-icon {
+  font-size: 1.2rem;
+}
+
+.ladder-championship-info {
+  flex: 1;
+}
+
+.ladder-championship-title {
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  color: var(--neon-yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ladder-championship-desc {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+
+.ladder-fight-btn {
+  background: var(--neon-pink);
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.ladder-fight-btn:hover {
+  background: var(--neon-green);
+  transform: scale(1.05);
+}
+
+.championship-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid var(--neon-yellow);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.splash-loot {
+  font-size: 1rem;
+  color: var(--neon-yellow);
+  margin: 8px 0;
+  text-align: center;
+}
+
+/* Bot stats summary on ladder screen */
+.ladder-bot-stats {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: var(--surface-raised);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}

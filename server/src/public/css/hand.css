@@ -1,0 +1,200 @@
+/* ============================================================
+   ChessMon — Hand Layout & Energy Display
+   Fan layout, energy orbs, round info, draw button
+   ============================================================ */
+
+/* Hand panel */
+#handPanel {
+  padding: 12px 16px 16px;
+}
+
+/* Header: energy + round info + draw button */
+.hand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+/* Energy display */
+.energy-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+}
+
+.energy-orbs {
+  display: flex;
+  gap: 3px;
+}
+
+.energy-orb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--neon-yellow);
+  background: transparent;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.energy-orb.filled {
+  background: var(--neon-yellow);
+  box-shadow: 0 0 6px var(--neon-yellow), 0 0 12px color-mix(in srgb, var(--neon-yellow) 30%, transparent);
+}
+
+.energy-orb.spent {
+  border-color: var(--border);
+  opacity: 0.4;
+}
+
+.energy-label {
+  color: var(--neon-yellow);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-yellow) 40%, transparent);
+}
+
+.energy-count {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+/* Round info */
+.round-info {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  flex: 1;
+}
+
+.round-info .round-number {
+  color: var(--neon-blue);
+  font-family: var(--font-display);
+}
+
+.round-info .cards-played {
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
+/* Draw button */
+.hand-draw-btn {
+  font-size: 0.7rem !important;
+  padding: 4px 12px !important;
+  white-space: nowrap;
+}
+
+/* Play area — where cards fly to when played */
+.hand-play-area {
+  min-height: 0;
+  transition: min-height 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hand-play-area.active {
+  min-height: 60px;
+  margin-bottom: 8px;
+}
+
+.play-effect-msg {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  padding: 12px;
+  animation: effectPulse 0.6s ease-out;
+}
+
+@keyframes effectPulse {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Card hand fan container */
+.hand-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0;
+  padding: 10px 0 4px;
+  min-height: 180px;
+  position: relative;
+}
+
+/* Fan layout — cards slightly overlapping and rotated */
+.hand-container .card {
+  margin: 0 -8px;
+  transform-origin: bottom center;
+}
+
+/* Stagger rotation for fan effect */
+.hand-container .card:nth-child(1) { transform: rotate(-9deg); z-index: 1; }
+.hand-container .card:nth-child(2) { transform: rotate(-6deg); z-index: 2; }
+.hand-container .card:nth-child(3) { transform: rotate(-3deg); z-index: 3; }
+.hand-container .card:nth-child(4) { transform: rotate(0deg);  z-index: 4; }
+.hand-container .card:nth-child(5) { transform: rotate(3deg);  z-index: 5; }
+.hand-container .card:nth-child(6) { transform: rotate(6deg);  z-index: 6; }
+.hand-container .card:nth-child(7) { transform: rotate(9deg);  z-index: 7; }
+
+/* Empty hand message */
+.hand-empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.hand-empty .hand-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.hand-empty .hand-empty-text {
+  margin-bottom: 12px;
+}
+
+/* Energy bar (alternative compact display) */
+.energy-bar-outer {
+  flex: 1;
+  max-width: 120px;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.energy-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-yellow), var(--neon-orange));
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--neon-yellow) 40%, transparent);
+}
+
+/* Card count badge */
+.hand-card-count {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .hand-container .card {
+    width: 100px;
+    height: 145px;
+    margin: 0 -10px;
+  }
+
+  .hand-container .card .card-name {
+    font-size: 0.5rem;
+  }
+
+  .hand-container .card .card-desc {
+    font-size: 0.55rem;
+  }
+}

@@ -1,0 +1,620 @@
+/* ============================================================
+   ChessMon — Layout (Screen-Based State Machine)
+   ============================================================ */
+
+/* Main container */
+.container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ============================================================
+   Screen system — only one visible at a time
+   ============================================================ */
+.screen {
+  animation: screenFadeIn 0.2s ease;
+}
+
+.screen.hidden {
+  display: none;
+}
+
+@keyframes screenFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Screen navigation bar
+   ============================================================ */
+.screen-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.screen-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  color: var(--neon-blue);
+  flex: 1;
+}
+
+.nav-back {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.nav-back:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.nav-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.nav-close:hover {
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+}
+
+.nav-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+/* ============================================================
+   Context banner (what to do next)
+   ============================================================ */
+.context-banner {
+  background: var(--surface-raised);
+  border: 1px solid var(--neon-blue);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
+}
+
+.context-banner.hidden {
+  display: none;
+}
+
+.context-banner.boss-ready {
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+  box-shadow: 0 0 8px rgba(255, 45, 138, 0.15);
+}
+
+/* ============================================================
+   Home screen action tiles
+   ============================================================ */
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.action-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.action-tile:hover {
+  border-color: var(--neon-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+}
+
+.action-tile.secondary {
+  background: transparent;
+}
+
+.action-icon {
+  font-size: 1.8rem;
+}
+
+.action-label {
+  font-size: 0.75rem;
+  font-family: 'Press Start 2P', monospace;
+  color: var(--text-dim);
+}
+
+.action-tile:hover .action-label {
+  color: var(--neon-blue);
+}
+
+.home-extras {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.home-extras button {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+}
+
+/* ============================================================
+   Floating panels (overlay on any screen)
+   ============================================================ */
+.floating-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  animation: floatIn 0.2s ease;
+}
+
+.floating-panel.hidden {
+  display: none;
+}
+
+.floating-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.floating-panel-header h2 {
+  margin: 0;
+}
+
+/* Backdrop for floating panels */
+.floating-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+
+@keyframes floatIn {
+  from { opacity: 0; transform: translate(-50%, -48%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* ============================================================
+   Prep screen context
+   ============================================================ */
+.prep-context {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   Two-column layout when board is active (pilot/play screen)
+   ============================================================ */
+@media (min-width: 768px) {
+  .container.board-active {
+    max-width: 1000px;
+  }
+}
+
+/* ============================================================
+   Responsive: smaller screens
+   ============================================================ */
+@media (max-width: 480px) {
+  .home-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .action-tile {
+    padding: 12px 8px;
+  }
+
+  .action-icon {
+    font-size: 1.4rem;
+  }
+
+  .floating-panel {
+    width: 95%;
+    max-height: 85vh;
+  }
+}
+
+/* =============================================================
+   DAILY QUESTS
+   ============================================================= */
+.daily-quests-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+}
+
+.daily-quests-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.quest-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.quest-item:last-child {
+  border-bottom: none;
+}
+
+.quest-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.quest-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.quest-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.quest-fill {
+  height: 100%;
+  background: var(--neon-cyan);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.quest-done .quest-fill {
+  background: var(--green);
+}
+
+.quest-progress {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.quest-done .quest-title {
+  color: var(--green);
+}
+
+.quest-done .quest-title::after {
+  content: ' ✓';
+}
+
+.quest-streak {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-top: 8px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--neon-yellow);
+}
+
+/* =============================================================
+   HELP / TUTORIAL SYSTEM
+   ============================================================= */
+.help-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 100;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+  transition: all 0.15s ease;
+}
+
+.help-btn:hover {
+  background: var(--neon-blue);
+  color: var(--bg);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.4);
+}
+
+.help-btn.hidden {
+  display: none;
+}
+
+.help-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.help-tab {
+  font-size: 0.65rem;
+  padding: 4px 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s ease;
+}
+
+.help-tab:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.help-tab.active {
+  background: var(--neon-blue);
+  color: var(--bg);
+  border-color: var(--neon-blue);
+}
+
+.help-section h3 {
+  margin: 12px 0 6px;
+  font-size: 0.85rem;
+  color: var(--neon-blue);
+}
+
+.help-section p,
+.help-section li {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.help-section ul {
+  margin: 4px 0 8px 16px;
+  padding: 0;
+}
+
+.help-section .help-example {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.tutorial-step {
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-raised);
+}
+
+.tutorial-step-num {
+  color: var(--neon-yellow);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  margin-bottom: 4px;
+}
+
+.tutorial-step h4 {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.tutorial-step p {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin: 2px 0;
+}
+
+.tutorial-step .tip {
+  font-size: 0.75rem;
+  color: var(--neon-green);
+  margin-top: 4px;
+}
+
+/* =============================================================
+   REPLAY COMMENTARY
+   ============================================================= */
+.replay-commentary {
+  font-size: 0.8rem;
+  padding: 8px;
+  min-height: 24px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+.replay-commentary.brilliant { color: var(--neon-green); }
+.replay-commentary.blunder { color: var(--neon-pink); }
+.replay-commentary.sacrifice { color: var(--neon-yellow); }
+.replay-commentary.turning_point { color: var(--neon-blue); }
+.replay-commentary.opening_book { color: var(--neon-cyan, var(--neon-blue)); }
+
+.move-annotation {
+  font-size: 0.6rem;
+  vertical-align: super;
+  margin-left: 1px;
+}
+
+.move-annotation.brilliant { color: var(--neon-green); }
+.move-annotation.blunder { color: var(--neon-pink); }
+.move-annotation.sacrifice { color: var(--neon-yellow); }
+.move-annotation.turning_point { color: var(--neon-blue); }
+
+/* =============================================================
+   OPENING EXPLORER
+   ============================================================= */
+.explorer-breadcrumb {
+  font-size: 0.75rem;
+  padding: 6px 0;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.explorer-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.explorer-book-move {
+  color: var(--neon-green);
+  font-size: 0.85rem;
+}
+
+.explorer-info {
+  margin-bottom: 8px;
+}
+
+/* =============================================================
+   BOT-VS-BOT CHALLENGE
+   ============================================================= */
+.challenge-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.challenge-card:last-child {
+  border-bottom: none;
+}
+
+.challenge-bot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* =============================================================
+   ACHIEVEMENTS
+   ============================================================= */
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.achievement-card {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.achievement-card.locked {
+  opacity: 0.4;
+}
+
+.achievement-card.unlocked {
+  border-color: var(--neon-yellow);
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.15);
+}
+
+.achievement-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.achievement-name {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.achievement-desc {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.achievement-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 300;
+  background: var(--surface);
+  border: 1px solid var(--neon-yellow);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: toastSlideIn 0.3s ease;
+  font-size: 0.85rem;
+  color: var(--neon-yellow);
+}
+
+.achievement-toast.hidden {
+  display: none;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}

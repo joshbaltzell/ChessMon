@@ -1,0 +1,208 @@
+/* ============================================================
+   ChessMon — Interactive Chess Board
+   ============================================================ */
+
+.chess-board-container {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.board-wrapper {
+  display: flex;
+  align-items: stretch;
+}
+
+.rank-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 20px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 0 2px;
+}
+
+.file-labels {
+  display: flex;
+  justify-content: space-around;
+  margin-left: 20px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+.file-labels span { flex: 1; text-align: center; }
+
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: min(calc(100vw - 80px), 440px);
+  aspect-ratio: 1;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+.chess-square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: min(calc((100vw - 80px) / 12), 36px);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+.chess-square.light { background: var(--sq-light); }
+.chess-square.dark { background: var(--sq-dark); }
+.chess-square .piece { line-height: 1; pointer-events: none; }
+.chess-square .piece.white {
+  color: #e0e0f0;
+  text-shadow: 0 0 4px rgba(0, 212, 255, 0.3);
+}
+.chess-square .piece.black {
+  color: var(--neon-yellow);
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+}
+
+/* Selected square */
+.chess-square.selected {
+  background: rgba(0, 212, 255, 0.25) !important;
+  box-shadow: inset 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+/* Legal move dots */
+.chess-square.legal-move::after {
+  content: '';
+  position: absolute;
+  width: 25%;
+  height: 25%;
+  background: rgba(0, 212, 255, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.3);
+}
+.chess-square.legal-capture::after {
+  content: '';
+  position: absolute;
+  width: 85%;
+  height: 85%;
+  border: 3px solid rgba(0, 212, 255, 0.5);
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* Last move highlight */
+.chess-square.last-move { background: rgba(0, 212, 255, 0.1) !important; }
+.chess-square.last-move.selected { background: rgba(0, 212, 255, 0.25) !important; }
+
+/* Suggested book move highlight (ghost arrow) */
+.chess-square.suggested-move {
+  background: rgba(57, 255, 20, 0.12) !important;
+  box-shadow: inset 0 0 8px rgba(57, 255, 20, 0.2);
+}
+
+/* Check highlight */
+.chess-square.in-check {
+  background: rgba(255, 45, 138, 0.3) !important;
+  box-shadow: inset 0 0 12px rgba(255, 45, 138, 0.3);
+}
+
+/* Hover */
+.chess-square:hover:not(.legal-move):not(.legal-capture) { filter: brightness(1.2); }
+.chess-square.legal-move:hover,
+.chess-square.legal-capture:hover {
+  background: rgba(0, 212, 255, 0.2) !important;
+}
+
+/* Promotion picker */
+.promo-overlay {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 2px solid var(--neon-blue);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 212, 255, 0.2);
+}
+.promo-overlay.hidden { display: none; }
+.promo-choice {
+  padding: 8px 16px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 1.8rem;
+  line-height: 1.2;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition-fast);
+}
+.promo-choice:last-child { border-bottom: none; }
+.promo-choice:hover { background: rgba(0, 212, 255, 0.15); }
+
+/* Play panel controls */
+.play-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.play-controls button { margin-top: 0; }
+#playStatus, #pilotStatus {
+  font-size: 0.8rem;
+  margin-top: 6px;
+  color: var(--text-dim);
+  min-height: 1.2em;
+}
+.pilot-xp-badge {
+  background: var(--neon-green, #39ff14);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+/* Replay panel */
+.replay-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.replay-controls button { margin-top: 0; font-size: 1rem; padding: 6px 12px; }
+.replay-info { font-size: 0.8rem; color: var(--text-dim); margin: 6px 0; }
+
+.move-list {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.move-list .move-pair { display: inline; }
+.move-list .move-num { color: var(--text-dim); }
+.move-list .move-san {
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--text);
+  transition: background var(--transition-fast);
+}
+.move-list .move-san:hover { background: var(--border); }
+.move-list .move-san.active {
+  background: var(--neon-blue);
+  color: #000;
+  font-weight: bold;
+}

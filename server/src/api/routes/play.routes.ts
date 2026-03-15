@@ -1,0 +1,74 @@
+import type { FastifyInstance } from 'fastify'
+import { PlayService } from '../../services/play.service.js'
+import { BotService } from '../../services/bot.service.js'
+import { getDb } from '../../db/connection.js'
+import type { StockfishPool } from '../../engine/stockfish-pool.js'
+import { botIdParamSchema, playSessionParamSchema, newGameSchema, moveSchema, parseOrThrow } from '../schemas/validation.js'
+import { rateLimitPlay } from '../plugins/rate-limiter.js'
+import { createOwnershipVerifier } from '../helpers/ownership.js'
+
+export function createPlayRoutes(pool: StockfishPool) {
+  return async function playRoutes(app: FastifyInstance) {
+    const db = getDb()
+    const playService = new PlayService(db, pool)
+    const botService = new BotService(db)
+    const verifyOwnership = createOwnershipVerifier(botService)
+
+    // Start a new human vs bot game
+    app.post('/bots/:id/play/new', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
+      const { playerId } = request.user
+      verifyOwnership(botId, playerId)
+
+      const { player_color } = parseOrThrow(newGameSchema, request.body ?? {})
+
+      try {
+        return await playService.newGame(botId, player_color ?? 'w')
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message, code: 'PLAY_ERROR' })
+      }
+    })
+
+    // Make a move in an active game
+    app.post('/bots/:id/play/:sessionId/move', { onRequest: [app.authenticate, rateLimitPlay] }, async (request, reply) => {
+      const { id: botId, sessionId } = parseOrThrow(playSessionParamSchema, request.params)
+      const { playerId } = request.user
+
+      verifyOwnership(botId, playerId)
+
+      const session = playService.getSession(sessionId)
+      if (!session || session.botId !== botId) {
+        return reply.status(404).send({ error: 'Session not found', code: 'SESSION_NOT_FOUND' })
+      }
+
+      const { move } = parseOrThrow(moveSchema, request.body)
+
+      try {
+        return await playService.makePlayerMove(sessionId, move)
+      } catch (err: any) {
+        if (err.message.includes('Invalid move') || err.message.includes('Not your turn') || err.message.includes('not active')) {
+          return reply.status(400).send({ error: err.message, code: 'INVALID_MOVE' })
+        }
+        throw err
+      }
+    })
+
+    // Resign
+    app.post('/bots/:id/play/:sessionId/resign', { onRequest: [app.authenticate] }, async (request, reply) => {
+      const { id: botId, sessionId } = parseOrThrow(playSessionParamSchema, request.params)
+      const { playerId } = request.user
+      verifyOwnership(botId, playerId)
+
+      const session = playService.getSession(sessionId)
+      if (!session || session.botId !== botId) {
+        return reply.status(404).send({ error: 'Session not found', code: 'SESSION_NOT_FOUND' })
+      }
+
+      try {
+        return await playService.resign(sessionId)
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message, code: 'RESIGN_ERROR' })
+      }
+    })
+  }
+}

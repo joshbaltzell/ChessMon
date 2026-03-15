@@ -1,0 +1,63 @@
+/* ============================================================
+   ChessMon — Activity Log Styles (Enhanced)
+   ============================================================ */
+
+.log {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* Legacy support for simple span-based logs */
+.log .win { color: var(--neon-green); text-shadow: 0 0 4px rgba(0, 255, 136, 0.2); }
+.log .loss { color: var(--neon-pink); text-shadow: 0 0 4px rgba(255, 45, 138, 0.2); }
+.log .draw { color: var(--neon-yellow); }
+.log .info { color: var(--neon-blue); }
+.log .dim { color: var(--text-dim); }
+
+/* New entry-based log with borders */
+.log-entry {
+  animation: slideInLeft 0.3s ease backwards;
+  padding: 3px 0 3px 10px;
+  border-left: 2.5px solid transparent;
+  margin: 1px 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.log-entry.log-win { border-left-color: var(--neon-green); }
+.log-entry.log-loss { border-left-color: var(--neon-pink); }
+.log-entry.log-draw { border-left-color: var(--neon-yellow); }
+.log-entry.log-info { border-left-color: var(--neon-blue); }
+.log-entry.log-dim { border-left-color: var(--border); }
+
+.log-entry.log-win .log-msg { color: var(--neon-green); }
+.log-entry.log-loss .log-msg { color: var(--neon-pink); }
+.log-entry.log-draw .log-msg { color: var(--neon-yellow); }
+.log-entry.log-info .log-msg { color: var(--neon-blue); }
+.log-entry.log-dim .log-msg { color: var(--text-dim); }
+
+.log-time {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  opacity: 0.6;
+  flex-shrink: 0;
+  min-width: 42px;
+}
+
+.log-msg {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}

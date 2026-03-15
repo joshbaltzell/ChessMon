@@ -1,0 +1,224 @@
+{
+  "systemBots": [
+    {
+      "level": 1,
+      "name": "Pawn Pusher",
+      "description": "A beginner bot that pushes pawns forward eagerly",
+      "elo": 400,
+      "weakness": "Any coordinated piece play",
+      "scoutText": "This opponent only pushes pawns early. Develop your pieces and you'll win.",
+      "playStyleHint": "Extremely predictable opening moves.",
+      "specialAbility": { "name": "Pawn Storm", "description": "Pawn moves score +0.3 aggression bonus", "effect": "aggressionBoost", "value": 0.3 },
+      "counterPrep": "Use Sharpen or Tactical Focus to punish overextended pawns."
+    },
+    {
+      "level": 2,
+      "name": "Knight Hopper",
+      "description": "Loves jumping knights around the board",
+      "elo": 500,
+      "weakness": "Strong positional play and center control",
+      "scoutText": "This opponent loves surprise knight attacks. Control the center to limit its knights.",
+      "playStyleHint": "Aggressively develops knights, loves forks.",
+      "specialAbility": { "name": "Knight Dance", "description": "+1 search depth for tactics", "effect": "depthBonus", "value": 1 },
+      "counterPrep": "Use Iron Defense to avoid blunders from knight forks."
+    },
+    {
+      "level": 3,
+      "name": "Bishop Slider",
+      "description": "Prefers diagonal play with bishops",
+      "elo": 600,
+      "weakness": "Solid opening repertoire neutralizes diagonal pressure",
+      "scoutText": "This opponent pins pieces to your king. Learn solid openings to counter.",
+      "playStyleHint": "Strong diagonal play, uses pins and skewers.",
+      "specialAbility": { "name": "Diagonal Mastery", "description": "+0.2 positional weight bonus", "effect": "positionalBoost", "value": 0.2 },
+      "counterPrep": "Use Opening Prep to neutralize its diagonal pressure."
+    },
+    {
+      "level": 4,
+      "name": "Rook Roller",
+      "description": "Opens files for rook play",
+      "elo": 700,
+      "weakness": "Aggressive openings that create early pressure",
+      "scoutText": "This opponent wants a long game. Attack early before it can consolidate.",
+      "playStyleHint": "Plays conservatively, trades down to endgames.",
+      "specialAbility": { "name": "Open Lines", "description": "+0.3 endgame weight", "effect": "endgameBoost", "value": 0.3 },
+      "counterPrep": "Use Aggression Surge to attack before it reaches the endgame."
+    },
+    {
+      "level": 5,
+      "name": "Castle Guard",
+      "description": "Always castles early and defends the king",
+      "elo": 800,
+      "weakness": "Well-rounded training across all attributes",
+      "scoutText": "This opponent studies YOU. Only a well-rounded bot can win.",
+      "playStyleHint": "Adapts strategy based on your bot's weaknesses.",
+      "specialAbility": { "name": "Fortress", "description": "Blunder rate reduced by 50%", "effect": "blunderReduction", "value": 0.5 },
+      "counterPrep": "Stack buffs: Sharpen + Tactical Focus to break through its defenses."
+    },
+    {
+      "level": 6,
+      "name": "Pin Master",
+      "description": "Loves creating pins and skewers",
+      "elo": 900,
+      "weakness": "Keeping pieces unaligned avoids pins",
+      "scoutText": "This opponent will pin your pieces to your king. Don't leave pieces on diagonals.",
+      "playStyleHint": "Patient, waits for pinning opportunities.",
+      "specialAbility": { "name": "Pin Sight", "description": "+0.3 tactical weight", "effect": "tacticalBoost", "value": 0.3 },
+      "counterPrep": "Use Iron Defense + Lucky Break to survive tactical threats."
+    },
+    {
+      "level": 7,
+      "name": "Fork Finder",
+      "description": "Looks for knight forks constantly",
+      "elo": 1000,
+      "weakness": "Limiting knight outposts through pawn structure",
+      "scoutText": "Watch for double attacks. Keep your king and queen separated.",
+      "playStyleHint": "Aggressive knight maneuvers, seeks double attacks.",
+      "specialAbility": { "name": "Fork Vision", "description": "+1 depth + 0.2 tactical weight", "effect": "depthBonus", "value": 1 },
+      "counterPrep": "Use Sharpen to see forks coming and avoid them."
+    },
+    {
+      "level": 8,
+      "name": "Center Controller",
+      "description": "Fights fiercely for central squares",
+      "elo": 1100,
+      "weakness": "Flank attacks that bypass the center",
+      "scoutText": "Don't fight for the center directly. Attack from the flanks.",
+      "playStyleHint": "Classical style, controls d4/d5/e4/e5.",
+      "specialAbility": { "name": "Central Dominance", "description": "+0.4 positional weight", "effect": "positionalBoost", "value": 0.4 },
+      "counterPrep": "Use Aggression Surge to launch flank attacks."
+    },
+    {
+      "level": 9,
+      "name": "File Opener",
+      "description": "Opens files and invades with heavy pieces",
+      "elo": 1200,
+      "weakness": "Closed positions that deny open files",
+      "scoutText": "Keep the position closed. Don't let it trade pawns to open files.",
+      "playStyleHint": "Seeks pawn exchanges, invades on open files.",
+      "specialAbility": { "name": "Rook Invasion", "description": "+0.3 aggression + endgame weight", "effect": "aggressionBoost", "value": 0.3 },
+      "counterPrep": "Use Opening Prep for a closed structure + Iron Defense."
+    },
+    {
+      "level": 10,
+      "name": "Endgame Grinder",
+      "description": "Simplifies into winning endgames",
+      "elo": 1300,
+      "weakness": "Aggressive middlegame that doesn't simplify",
+      "scoutText": "This opponent thrives in endgames. Win before you get there.",
+      "playStyleHint": "Trades pieces, converts small advantages in endgames.",
+      "specialAbility": { "name": "Simplify", "description": "+0.5 endgame weight + 1 depth in endgame", "effect": "endgameBoost", "value": 0.5 },
+      "counterPrep": "Use Aggression Surge + Tactical Focus to win in the middlegame."
+    },
+    {
+      "level": 11,
+      "name": "Tempo Hunter",
+      "description": "Gains tempo with every move",
+      "elo": 1400,
+      "weakness": "Solid defensive setups that deny tempo gains",
+      "scoutText": "Every move threatens something. Be ready to defend actively.",
+      "playStyleHint": "Constant pressure, never a wasted move.",
+      "specialAbility": { "name": "Tempo Pressure", "description": "+0.3 aggression + tactical weight", "effect": "aggressionBoost", "value": 0.3 },
+      "counterPrep": "Use Iron Defense + Endgame Study to weather the storm."
+    },
+    {
+      "level": 12,
+      "name": "Space Invader",
+      "description": "Grabs space and restricts opponent",
+      "elo": 1500,
+      "weakness": "Counterattacking play that punishes overextension",
+      "scoutText": "It will grab space. Strike back when it overextends.",
+      "playStyleHint": "Pawn-heavy expansions, restricts your pieces.",
+      "specialAbility": { "name": "Space Control", "description": "+0.4 positional weight + reduced blunder rate", "effect": "positionalBoost", "value": 0.4 },
+      "counterPrep": "Use Tactical Focus + Second Wind for a counterattack."
+    },
+    {
+      "level": 13,
+      "name": "Quiet Assassin",
+      "description": "Makes strong quiet moves that build pressure",
+      "elo": 1600,
+      "weakness": "Direct tactical confrontation",
+      "scoutText": "This opponent wins slowly. Force sharp positions where tactics decide.",
+      "playStyleHint": "Quiet moves, gradual pressure, no obvious threats.",
+      "specialAbility": { "name": "Silent Pressure", "description": "+2 depth + 0.3 positional weight", "effect": "depthBonus", "value": 2 },
+      "counterPrep": "Use Sharpen + Aggression Surge to create chaos."
+    },
+    {
+      "level": 14,
+      "name": "Exchange Master",
+      "description": "Knows when to trade and when to keep pieces",
+      "elo": 1700,
+      "weakness": "Imbalanced positions where material count is unequal",
+      "scoutText": "It trades perfectly. Create imbalances — sacrifice material for initiative.",
+      "playStyleHint": "Precise exchanges, always trades favorably.",
+      "specialAbility": { "name": "Perfect Trades", "description": "+1 depth + 0.3 endgame weight", "effect": "depthBonus", "value": 1 },
+      "counterPrep": "Use Adrenaline + Tactical Focus for sharp sacrificial play."
+    },
+    {
+      "level": 15,
+      "name": "Prophylaxis Pro",
+      "description": "Prevents opponent plans before executing own",
+      "elo": 1800,
+      "weakness": "Multiple simultaneous threats it can't all prevent",
+      "scoutText": "It prevents your plans. Create two threats at once to overwhelm it.",
+      "playStyleHint": "Defensive genius, stops your ideas before they happen.",
+      "specialAbility": { "name": "Anticipation", "description": "MultiPV 8 — sees all possibilities", "effect": "multiPvBoost", "value": 8 },
+      "counterPrep": "Stack all buffs: Sharpen + Tactical Focus + Aggression Surge."
+    },
+    {
+      "level": 16,
+      "name": "Calculation Engine",
+      "description": "Calculates deeply and accurately",
+      "elo": 1900,
+      "weakness": "Positional complexity where calculation alone isn't enough",
+      "scoutText": "It out-calculates you. Play for positional subtleties instead.",
+      "playStyleHint": "Deep calculation, finds long forced lines.",
+      "specialAbility": { "name": "Deep Calculation", "description": "+3 search depth", "effect": "depthBonus", "value": 3 },
+      "counterPrep": "Use Meditation + Opening Prep for positional edge."
+    },
+    {
+      "level": 17,
+      "name": "Positional Sage",
+      "description": "Deep positional understanding",
+      "elo": 2000,
+      "weakness": "Sharp tactical complications",
+      "scoutText": "Don't play a quiet game — it wins those. Create tactical chaos.",
+      "playStyleHint": "Never blunders, perfect piece placement.",
+      "specialAbility": { "name": "Perfect Position", "description": "+0.5 positional weight + blunder rate halved", "effect": "positionalBoost", "value": 0.5 },
+      "counterPrep": "Use Tactical Focus + Aggression Surge + Adrenaline."
+    },
+    {
+      "level": 18,
+      "name": "Tactical Storm",
+      "description": "Finds brilliant tactical shots",
+      "elo": 2100,
+      "weakness": "Solid prophylactic play that denies tactics",
+      "scoutText": "It will find tactics you didn't see. Play solid and don't give chances.",
+      "playStyleHint": "Seeks complications, sacrifices for initiative.",
+      "specialAbility": { "name": "Brilliant Shots", "description": "+0.5 tactical weight + 2 depth", "effect": "tacticalBoost", "value": 0.5 },
+      "counterPrep": "Use Iron Defense + Endgame Study + Deep Thought."
+    },
+    {
+      "level": 19,
+      "name": "Grandmaster Ghost",
+      "description": "Plays at near-grandmaster strength",
+      "elo": 2200,
+      "weakness": "Nothing obvious — only a fully trained bot can compete",
+      "scoutText": "This is a true test. Bring every buff and powerup you have.",
+      "playStyleHint": "Near-perfect play in all phases.",
+      "specialAbility": { "name": "GM Intuition", "description": "+3 depth + 0.3 all weights", "effect": "depthBonus", "value": 3 },
+      "counterPrep": "Maximum preparation: stack every buff available."
+    },
+    {
+      "level": 20,
+      "name": "Stockfish Ceiling",
+      "description": "The ultimate challenge - full engine strength",
+      "elo": 2400,
+      "weakness": "None — this is the ceiling",
+      "scoutText": "Depth 22, zero blunders, perfect play. Only a fully evolved bot with perfect prep can survive.",
+      "playStyleHint": "Perfect calculation in all positions.",
+      "specialAbility": { "name": "Perfect Calculation", "description": "Depth 22, zero blunders, full engine", "effect": "depthBonus", "value": 4 },
+      "counterPrep": "You'll need everything: all buffs, all powerups, and a fully trained ML model."
+    }
+  ]
+}

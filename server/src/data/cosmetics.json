@@ -1,0 +1,221 @@
+{
+  "asciiArt": {
+    "tier1": {
+      "levelRange": "1-4",
+      "description": "Basic box-drawing, minimal detail",
+      "frames": {
+        "default": [
+          "┌─────┐",
+          "│ ♟ ♟ │",
+          "│  ☺  │",
+          "│ ♟ ♟ │",
+          "└─────┘"
+        ],
+        "happy": [
+          "┌─────┐",
+          "│ ♟ ♟ │",
+          "│  ☻  │",
+          "│ ♟ ♟ │",
+          "└─────┘"
+        ],
+        "sad": [
+          "┌─────┐",
+          "│ ♟ ♟ │",
+          "│  ☹  │",
+          "│ ♟ ♟ │",
+          "└─────┘"
+        ]
+      }
+    },
+    "tier2": {
+      "levelRange": "5-8",
+      "description": "Improved with shading characters",
+      "frames": {
+        "default": [
+          "╔═══════╗",
+          "║ ░♞░♝░ ║",
+          "║ ░ ☺ ░ ║",
+          "║ ░♞░♝░ ║",
+          "╚═══════╝"
+        ],
+        "happy": [
+          "╔═══════╗",
+          "║ ▒♞▒♝▒ ║",
+          "║ ▒ ☻ ▒ ║",
+          "║ ▒♞▒♝▒ ║",
+          "╚═══════╝"
+        ],
+        "battle": [
+          "╔═══════╗",
+          "║ ▓♞▓♝▓ ║",
+          "║ ▓⚔️▓  ║",
+          "║ ▓♞▓♝▓ ║",
+          "╚═══════╝"
+        ]
+      }
+    },
+    "tier3": {
+      "levelRange": "9-12",
+      "description": "Full ASCII art portraits with borders",
+      "frames": {
+        "default": [
+          "╔══════════╗",
+          "║  ♛ ♚ ♛  ║",
+          "║ ╭──────╮ ║",
+          "║ │  ◉◉  │ ║",
+          "║ │  ‿‿  │ ║",
+          "║ ╰──────╯ ║",
+          "║  ♜ ♝ ♞  ║",
+          "╚══════════╝"
+        ]
+      }
+    },
+    "tier4": {
+      "levelRange": "13-16",
+      "description": "Premium Unicode art, animated-style",
+      "frames": {
+        "default": [
+          "╔════════════╗",
+          "║  ⚜ ♛ ♚ ⚜  ║",
+          "║ ┏━━━━━━━┓  ║",
+          "║ ┃ ★  ★  ┃  ║",
+          "║ ┃  ◡◡   ┃  ║",
+          "║ ┗━━━━━━━┛  ║",
+          "║ ♜♝♞ ♔ ♞♝♜ ║",
+          "║  ━━━━━━━   ║",
+          "╚════════════╝"
+        ]
+      }
+    },
+    "tier5": {
+      "levelRange": "17-20",
+      "description": "Elite detailed art with alignment themes",
+      "frames": {
+        "aggressive": [
+          "╔══════════════╗",
+          "║ ⚡⚡ CHAMPION ⚡⚡║",
+          "║ ┏━━━━━━━━━┓  ║",
+          "║ ┃ 🔥 ★★ 🔥 ┃ ║",
+          "║ ┃   ◉  ◉   ┃ ║",
+          "║ ┃   ╰──╯   ┃ ║",
+          "║ ┗━━━━━━━━━┛  ║",
+          "║ ♛♜♝♞♔♞♝♜♛   ║",
+          "║ ═══════════  ║",
+          "╚══════════════╝"
+        ],
+        "defensive": [
+          "╔══════════════╗",
+          "║ 🛡️ CHAMPION 🛡️║",
+          "║ ┏━━━━━━━━━┓  ║",
+          "║ ┃ 🏰 ★★ 🏰 ┃ ║",
+          "║ ┃   ◉  ◉   ┃ ║",
+          "║ ┃   ╰──╯   ┃ ║",
+          "║ ┗━━━━━━━━━┛  ║",
+          "║ ♟♟♟♔♟♟♟♟♟   ║",
+          "║ ═══════════  ║",
+          "╚══════════════╝"
+        ],
+        "balanced": [
+          "╔══════════════╗",
+          "║ ⚖️ CHAMPION ⚖️║",
+          "║ ┏━━━━━━━━━┓  ║",
+          "║ ┃ ✨ ★★ ✨ ┃  ║",
+          "║ ┃   ◉  ◉   ┃ ║",
+          "║ ┃   ╰──╯   ┃ ║",
+          "║ ┗━━━━━━━━━┛  ║",
+          "║ ♛♜♝♞♔♞♝♜♛   ║",
+          "║ ═══════════  ║",
+          "╚══════════════╝"
+        ]
+      }
+    }
+  },
+  "skins": [
+    {
+      "id": "default",
+      "name": "Classic",
+      "description": "The standard chess bot look",
+      "unlockedBy": "default",
+      "rarity": "common"
+    },
+    {
+      "id": "flame",
+      "name": "Flame",
+      "description": "Fire-themed borders and accents",
+      "unlockedBy": "reach_level_5",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "ice",
+      "name": "Ice Crystal",
+      "description": "Cool blue frost patterns",
+      "unlockedBy": "reach_level_8",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "shadow",
+      "name": "Shadow",
+      "description": "Dark mysterious aesthetic",
+      "unlockedBy": "win_50_games",
+      "rarity": "rare"
+    },
+    {
+      "id": "gold",
+      "name": "Golden Champion",
+      "description": "Gilded borders for proven champions",
+      "unlockedBy": "reach_level_15",
+      "rarity": "epic"
+    },
+    {
+      "id": "diamond",
+      "name": "Diamond",
+      "description": "Sparkling diamond-encrusted design",
+      "unlockedBy": "reach_level_20",
+      "rarity": "legendary"
+    },
+    {
+      "id": "neon",
+      "name": "Neon Arcade",
+      "description": "Retro arcade neon glow",
+      "unlockedBy": "play_100_human_games",
+      "rarity": "rare"
+    },
+    {
+      "id": "nature",
+      "name": "Nature Spirit",
+      "description": "Organic leaf and vine patterns",
+      "unlockedBy": "win_streak_10",
+      "rarity": "rare"
+    }
+  ],
+  "designPacks": [
+    {
+      "id": "classic_wood",
+      "name": "Classic Wood",
+      "description": "Traditional wooden board theme",
+      "unlockedBy": "default",
+      "boardTheme": "wood"
+    },
+    {
+      "id": "marble",
+      "name": "Marble Palace",
+      "description": "Elegant marble board and pieces",
+      "unlockedBy": "reach_level_10",
+      "boardTheme": "marble"
+    },
+    {
+      "id": "pixel",
+      "name": "Pixel Art",
+      "description": "8-bit retro pixel style",
+      "unlockedBy": "play_50_human_games",
+      "boardTheme": "pixel"
+    },
+    {
+      "id": "dark_castle",
+      "name": "Dark Castle",
+      "description": "Gothic castle theme for the bold",
+      "unlockedBy": "reach_level_12",
+      "boardTheme": "gothic"
+    }
+  ]
+}

@@ -1,0 +1,403 @@
+/* ============================================================
+   ChessMon — Neon Arcade Theme
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  /* Neon Arcade Palette */
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface-raised: #1a1a26;
+  --border: #2a2a3a;
+  --text: #e0e0f0;
+  --text-dim: #6a6a8a;
+
+  /* Neon Colors */
+  --neon-blue: #00d4ff;
+  --neon-pink: #ff2d8a;
+  --neon-green: #00ff88;
+  --neon-purple: #b44aff;
+  --neon-yellow: #ffd700;
+  --neon-orange: #ff6b2d;
+
+  /* Semantic aliases (mapped from old palette) */
+  --accent: var(--neon-blue);
+  --green: var(--neon-green);
+  --red: var(--neon-pink);
+  --yellow: var(--neon-yellow);
+  --purple: var(--neon-purple);
+
+  /* Board squares */
+  --sq-light: #1e1e2e;
+  --sq-dark: #14141f;
+
+  /* Fonts */
+  --font-display: 'Press Start 2P', monospace;
+  --font-body: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+}
+
+/* ===== Reset & Base ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* CRT scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ===== Typography ===== */
+h1 {
+  font-family: var(--font-display);
+  color: var(--neon-yellow);
+  font-size: 1.2rem;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.2);
+  letter-spacing: 2px;
+}
+
+h2 {
+  font-family: var(--font-display);
+  color: var(--neon-blue);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  margin: 16px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+h3 {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+}
+
+/* ===== Panels ===== */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.panel.hidden {
+  display: none;
+}
+
+.panel.entering {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* ===== Status indicators ===== */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot.ok {
+  background: var(--neon-green);
+  box-shadow: 0 0 6px var(--neon-green);
+}
+.status-dot.err {
+  background: var(--neon-pink);
+  box-shadow: 0 0 6px var(--neon-pink);
+}
+
+/* ===== Forms ===== */
+label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin: 8px 0 2px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+input[type=text], input[type=password], input[type=number], select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; }
+
+/* ===== Buttons ===== */
+button {
+  background: var(--neon-blue);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all var(--transition-fast);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+button:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+button.secondary:hover:not(:disabled) {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+button.danger {
+  background: var(--neon-pink);
+  color: #fff;
+}
+button.danger:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(255, 45, 138, 0.4);
+}
+
+button.green {
+  background: var(--neon-green);
+  color: #000;
+}
+button.green:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+}
+
+/* ===== Attribute sliders ===== */
+.attr-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+.attr-row span:first-child {
+  width: 110px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.attr-row input[type=range] {
+  flex: 1;
+  accent-color: var(--neon-blue);
+  height: 4px;
+}
+.attr-row .val {
+  width: 28px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--neon-blue);
+  font-weight: 700;
+}
+.pts-left {
+  font-size: 0.8rem;
+  margin: 4px 0;
+  color: var(--text-dim);
+}
+.pts-left.over {
+  color: var(--neon-pink);
+  text-shadow: 0 0 6px rgba(255, 45, 138, 0.4);
+}
+
+/* ===== Dashboard stats ===== */
+.ascii-art {
+  font-size: 1.4rem;
+  line-height: 1.2;
+  text-align: center;
+  padding: 8px 0;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.face {
+  font-size: 1.8rem;
+  text-align: center;
+  margin: 4px 0;
+}
+
+.catchphrase {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  font-size: 0.8rem;
+  margin: 8px 0;
+}
+.stat-grid .lbl { color: var(--text-dim); }
+.stat-grid .val { color: var(--neon-blue); text-align: right; font-weight: 500; }
+
+.xp-bar-outer {
+  background: var(--bg);
+  border-radius: 4px;
+  height: 14px;
+  margin: 6px 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.xp-bar-inner {
+  background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+  height: 100%;
+  border-radius: 3px;
+  transition: width var(--transition-slow);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+.mood-msg {
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 10px;
+  margin: 8px 0;
+  text-align: center;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+}
+.mood-msg.sparkle {
+  border-color: var(--neon-yellow);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
+}
+
+.tactics-list {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.tactics-list span {
+  color: var(--neon-purple);
+}
+
+/* ===== Actions bar ===== */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+/* ===== Tactic Shop Cards ===== */
+.tactic-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 6px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.tactic-card:hover {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.1);
+}
+.tactic-card .tactic-info { flex: 1; }
+.tactic-card .tactic-name { font-weight: bold; color: var(--neon-blue); font-size: 0.85rem; }
+.tactic-card .tactic-desc { font-size: 0.8rem; color: var(--text-dim); margin: 2px 0; }
+.tactic-card .tactic-meta { font-size: 0.75rem; color: var(--text-dim); }
+.tactic-card .tactic-meta .category { color: var(--neon-purple); }
+.tactic-card.owned { opacity: 0.5; }
+.tactic-card.locked .tactic-name { color: var(--text-dim); }
+
+/* ===== Bot Brain ===== */
+.brain-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+  font-size: 0.8rem;
+}
+.brain-label {
+  width: 90px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* ===== Scrollbar styling ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* ===== Selection ===== */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+  color: var(--text);
+}

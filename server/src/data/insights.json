@@ -1,0 +1,39 @@
+{
+  "insights": {
+    "1": [
+      "Your bot hesitates in the opening — try learning a tactic!",
+      "Pawn structure is loose. More drilling could help.",
+      "Your bot tends to retreat when pressured.",
+      "Early piece development is slow. An opening book would help.",
+      "Your bot missed a simple capture opportunity."
+    ],
+    "2": [
+      "Knight positioning could be sharper. Watch for forks!",
+      "Your bot struggles when knights invade the center.",
+      "Double attacks catch your bot off guard sometimes.",
+      "Piece coordination is improving but still has gaps.",
+      "Your bot sometimes blocks its own bishops."
+    ],
+    "3": [
+      "Pin defense needs work — bishops are exploiting weak spots.",
+      "Your bot doesn't always respond well to diagonal pressure.",
+      "Skewer vulnerability detected along open files.",
+      "Your bot's middlegame transitions are improving.",
+      "Tactical awareness is growing but complex combos still slip by."
+    ],
+    "4": [
+      "Endgame technique is the weakest area right now.",
+      "Your bot trades down too eagerly when ahead.",
+      "Rook endgames need more precision.",
+      "Your bot sometimes misses passed pawn opportunities.",
+      "Converting advantages to wins is getting better."
+    ],
+    "5": [
+      "Your bot's style is becoming distinctive — keep training!",
+      "Adaptability against varied opponents could improve.",
+      "Complex positions with multiple threats still cause trouble.",
+      "Your bot plays well in familiar openings but struggles in unknown territory.",
+      "Almost PvP-ready. Consistency is the final frontier."
+    ]
+  }
+}
