@@ -6,8 +6,6 @@
 let replayChess = null;
 let replayMoves = [];
 let replayIndex = 0;
-let lastSparPgn = null;
-let lastSparRecap = null;
 let replayAutoTimer = null;
 let replayRecap = null;  // Key moments indexed by half-move number
 

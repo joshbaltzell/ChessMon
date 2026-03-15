@@ -7,14 +7,12 @@ let explorerChess = null;
 let explorerPositions = {};  // FEN prefix → recommended SAN move
 let explorerHistory = [];
 let explorerProficiency = 0;
-let explorerSelected = null; // selected square for click-to-move
 
 function openExplorer(tacticKey, name, positions, proficiency) {
   explorerPositions = positions;
   explorerChess = new Chess();
   explorerHistory = [];
   explorerProficiency = proficiency;
-  explorerSelected = null;
 
   document.getElementById('explorerTitle').textContent = name;
   document.getElementById('openingExplorerPanel').classList.remove('hidden');
@@ -26,7 +24,6 @@ function closeOpeningExplorer() {
   explorerChess = null;
   explorerPositions = {};
   explorerHistory = [];
-  explorerSelected = null;
 }
 
 function getExplorerFenPrefix(fen) {
@@ -86,8 +83,9 @@ function updateExplorerControls(bookMove) {
   let html = '';
 
   if (bookMove) {
-    html += `<span class="explorer-book-move">Book move: <strong>${bookMove}</strong></span> `;
-    html += `<button class="secondary" onclick="playExplorerMove('${bookMove}')">Play Book Move</button> `;
+    const safeMove = bookMove.replace(/[<>&"']/g, '');
+    html += `<span class="explorer-book-move">Book move: <strong>${safeMove}</strong></span> `;
+    html += `<button class="secondary" onclick="playExplorerMove('${safeMove}')">Play Book Move</button> `;
   } else if (!explorerChess.isGameOver()) {
     html += `<span style="color:var(--text-dim);font-size:0.8rem">No book move for this position</span> `;
   }
@@ -112,7 +110,6 @@ function playExplorerMove(san) {
   try {
     explorerChess.move(san);
     explorerHistory.push(san);
-    explorerSelected = null;
     renderExplorerBoard();
   } catch { /* invalid move */ }
 }
@@ -121,7 +118,6 @@ function undoExplorerMove() {
   if (!explorerChess || explorerHistory.length === 0) return;
   explorerChess.undo();
   explorerHistory.pop();
-  explorerSelected = null;
   renderExplorerBoard();
 }
 
@@ -129,22 +125,13 @@ function resetExplorer() {
   if (!explorerChess) return;
   explorerChess = new Chess();
   explorerHistory = [];
-  explorerSelected = null;
   renderExplorerBoard();
 }
 
 async function openOpeningExplorer(tacticKey) {
-  if (!currentBotId || !authToken) return;
+  if (!currentBotId) return;
   try {
-    const res = await fetch(`/api/v1/bots/${currentBotId}/openings/${tacticKey}`, {
-      headers: { 'Authorization': `Bearer ${authToken}` },
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      log(err.error || 'Failed to load opening', 'error');
-      return;
-    }
-    const data = await res.json();
+    const data = await api('GET', `/bots/${currentBotId}/openings/${tacticKey}`);
     openExplorer(data.key, data.name, data.positions, data.proficiency);
   } catch (err) {
     log('Failed to load opening: ' + err.message, 'error');

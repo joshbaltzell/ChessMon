@@ -138,6 +138,9 @@ export class DashboardService {
 
     const contextCues = this.generateContextCues(bot, handState, ladderState)
 
+    // Check achievements first so getAllWithStatus reflects newly unlocked ones
+    const newlyUnlockedAchievements = this.checkAchievements(botId)
+
     return {
       identity: {
         id: bot.id,
@@ -218,8 +221,8 @@ export class DashboardService {
       overnightReport,
       dailyQuests,
       streakInfo,
+      newAchievements: newlyUnlockedAchievements,
       achievements: this.achievementService.getAllWithStatus(botId),
-      newAchievements: this.checkAchievements(botId),
     }
   }
 

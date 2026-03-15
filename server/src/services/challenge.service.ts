@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { bots, botTactics, gameRecords, trainingLog } from '../db/schema.js'
+import { bots, botTactics, gameRecords } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { StockfishPool } from '../engine/stockfish-pool.js'
 import { simulateGame } from '../engine/game-simulator.js'
@@ -11,7 +11,7 @@ import { loadModel } from '../ml/model-store.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
 import { generateMatchRecap } from '../models/battle-commentary.js'
 import { generateEmotionResponse } from '../models/personality.js'
-import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP, type GameResult } from '../types/index.js'
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP } from '../types/index.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
 
 export class ChallengeService {
@@ -149,10 +149,10 @@ export class ChallengeService {
 
     // Determine outcome for challenger
     const challengerWon = (gameResult.result === '1-0' && challengerIsWhite) || (gameResult.result === '0-1' && !challengerIsWhite)
-    const challengerLost = (gameResult.result === '1-0' && !challengerIsWhite) || (gameResult.result === '0-1' && challengerIsWhite)
+    const isDraw = gameResult.result === '1/2-1/2'
 
     const challengerEmotion = generateEmotionResponse(
-      challengerWon ? 'win' : challengerLost ? 'loss' : 'draw', 'spar',
+      challengerWon ? 'win' : isDraw ? 'draw' : 'loss', 'spar',
       challenger.alignmentAttack, challenger.alignmentStyle, challenger.level, gameResult.moveCount,
     )
 

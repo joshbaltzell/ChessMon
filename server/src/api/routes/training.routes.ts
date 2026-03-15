@@ -123,7 +123,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
     // Opening Explorer: get opening book positions for an owned tactic
     app.get('/bots/:id/openings/:tacticKey', { onRequest: [app.authenticate] }, async (request, reply) => {
       const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
-      const { tacticKey } = request.params as { tacticKey: string }
+      const { tacticKey } = request.params as { id: string; tacticKey: string }
       const { playerId } = request.user
 
       verifyOwnership(botId, playerId)
