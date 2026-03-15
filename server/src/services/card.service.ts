@@ -355,13 +355,6 @@ export class CardService {
   }
 
   /**
-   * Randomly draw `count` cards from the full pool (no level filtering).
-   */
-  private randomDraw(count: number): HandCard[] {
-    return this.drawFromPool(count, CARD_DEFINITIONS)
-  }
-
-  /**
    * Core draw logic: builds a weighted pool from definitions and draws cards.
    */
   private drawFromPool(count: number, definitions: CardDefinition[]): HandCard[] {

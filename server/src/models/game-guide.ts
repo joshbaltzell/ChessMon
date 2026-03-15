@@ -100,41 +100,118 @@ export function getGameGuide() {
 
     training: {
       title: 'Training System',
-      description: 'Each level grants training points. Spend them wisely before attempting the level test.',
+      description: 'Train your bot through quick spars, tactic purchases, and drilling. Each spar earns XP and teaches your bot\'s ML model.',
       actions: [
         {
-          name: 'Spar',
-          cost: 2,
-          description: 'Play a full game against a system bot or another player\'s bot. Your bot\'s ML model learns from every game — which moves led to wins, which to losses. Gains 20 XP.',
+          name: 'Quick Spar',
+          description: 'Free timed spar on a 5-minute cooldown. Win streaks of 3+ reduce the timer. Earns XP, energy, and a chance at loot (insights, cards, boss intel).',
         },
         {
           name: 'Purchase Tactic',
-          cost: 3,
           description: 'Buy a tactic or opening from the catalog. Opening tactics give your bot a "book" of known positions. Other tactics affect attribute bonuses.',
         },
         {
           name: 'Drill',
-          cost: 1,
           description: 'Practice an owned tactic. Increases proficiency (starts at 20%, caps at 100%). Higher proficiency = more likely to follow the opening book correctly.',
         },
       ],
       strategy: [
-        'At level 1 (10 points): 3 spars (6) + 1 tactic purchase (3) + 1 drill (1) = 10 points',
-        'Prioritize spars early — the ML model needs games to learn from',
+        'Quick Spar early and often — the ML model needs games to learn from',
+        'Win streaks reduce spar cooldown and improve loot chances',
         'Purchase openings that match your alignment (aggressive bots love the Sicilian)',
-        'Drill before a level test — high proficiency opening play gives a real edge',
+        'Drill before a boss fight — high proficiency opening play gives a real edge',
+      ],
+    },
+
+    cardSystem: {
+      title: 'Card System (Preparation + Powerups)',
+      description: 'Cards are strategic pre-fight loadout, not an action menu. Draw a hand, spend energy to play cards, then fight.',
+      categories: [
+        {
+          name: 'Preparation',
+          description: 'Buffs applied to your next fight\'s PlayParameters.',
+          examples: 'Sharpen (+2 depth), Iron Defense (-50% blunder rate), Tactical Focus (+0.4 tactical weight)',
+        },
+        {
+          name: 'Powerup',
+          description: 'One-shot triggers that activate during fights.',
+          examples: 'Second Wind (+3 depth if losing at move 20+), Lucky Break (skip next blunder), Adrenaline (halve temperature for 10 moves)',
+        },
+        {
+          name: 'Utility',
+          description: 'Immediate non-combat effects.',
+          examples: 'Focus (+1 energy), Rest (redraw hand), Scout (reveal boss weakness), Haste (reduce spar timer by 60s)',
+        },
+      ],
+      tips: [
+        'You draw 7 cards per hand. Play costs energy.',
+        'Energy comes from level, Focus cards, loot, and quest rewards.',
+        'Queue preparation buffs and powerups before boss fights for maximum effect.',
+        'Scout cards reveal boss weaknesses — use them before championship bouts.',
+        'Cards unlock at different levels (1-5 gating).',
+      ],
+    },
+
+    sparTimer: {
+      title: 'Spar Timer',
+      description: 'Free spars run on a server-side cooldown to keep the engagement loop tight.',
+      mechanics: [
+        'Base cooldown: 5 minutes (300s)',
+        'Win streaks of 3+ reduce timer by 30s per streak level',
+        'Minimum cooldown floor: 2 minutes (120s)',
+        'Haste prep card reduces next cooldown by 60s',
+        'Dashboard shows a live countdown; button pulses when ready',
+      ],
+    },
+
+    pilotMode: {
+      title: 'Pilot Mode',
+      description: 'Play AS your bot against a system opponent. Your moves teach the bot your style.',
+      mechanics: [
+        'You control your bot directly against a chosen system level',
+        'Earns 1.5x XP compared to normal spars',
+        'Elo changes are applied based on the system opponent\'s level',
+        'After the game, the ML model trains on YOUR positions — teaching the bot your style',
+        'Opening book suggestions appear as highlighted squares on the board',
+        'Great for teaching your bot specific strategies you want it to learn',
+      ],
+    },
+
+    bossesAndLadder: {
+      title: 'Bosses & Ladder',
+      description: 'Each level has a 3-opponent ladder of system bots leading to a championship bout.',
+      mechanics: [
+        'Defeat 3 ladder opponents sequentially to unlock the championship (boss fight)',
+        'Each boss has a special ability that modifies their play (e.g. "Pawn Storm" +0.3 aggression, "Fortress" -50% blunder rate)',
+        'Use the Scout card to reveal boss weakness and get counter-prep suggestions',
+        'Championship bouts are multi-round — win enough rounds to advance',
+        'Losing to a boss grants +3 energy and advice on countering their strategy',
+      ],
+    },
+
+    dailyQuests: {
+      title: 'Daily Quests & Streaks',
+      description: 'Come back every day for quests and streak rewards.',
+      mechanics: [
+        '3 daily quests per bot, generated from a level-appropriate pool',
+        'Quest types: win spars, play cards, earn XP, beat a boss, win streak, pilot win, and more',
+        'Consecutive daily check-ins build a streak for bonus rewards:',
+        '  Days 1-2: +2 energy',
+        '  Days 3-5: +3 energy',
+        '  Days 6+: +5 energy',
+        'Your bot also fights autonomously while you\'re away (up to 8 fights per day)',
+        'Return to see an overnight report with Elo changes and XP gains',
       ],
     },
 
     levelTests: {
-      title: 'Level Tests',
-      description: 'To advance from level N to N+1, your bot must pass the level test by winning enough games against opponents near the target elo.',
+      title: 'Level Tests (Legacy)',
+      description: 'The ladder + championship system is the primary progression path. Level tests remain as an alternative.',
       mechanics: [
-        'Each level has a target elo and a number of test games (3-5)',
-        'You need to win a majority of the test games to pass',
-        'Failing grants +5 bonus training points to try again',
-        'Lower levels face only system bots; higher levels face player bots too',
-        'Level 20 is the ceiling — beat the Stockfish Ceiling bot to max out',
+        'Play 3-5 games against opponents near the target elo',
+        'Win a majority to pass and advance',
+        'Failing grants +5 bonus training points',
+        'The ladder/championship path is recommended for a better experience',
       ],
     },
 
@@ -237,12 +314,14 @@ export function getOnboardingGuide() {
       {
         step: 4,
         title: 'Start Training!',
-        description: 'You begin at level 1 with 10 training points. Here\'s your optimal first session:',
+        description: 'You begin at level 1 with energy and a hand of cards. Here\'s your optimal first session:',
         plan: [
-          'Spar 3 times (-6 points) — your ML model needs data to learn',
-          'Purchase one opening that matches your style (-3 points)',
-          'Drill that opening once (-1 point)',
-          'Take the level test!',
+          'Hit Quick Spar to play your first game — the ML model needs data',
+          'Wait for the spar timer, then spar again (win streaks speed it up!)',
+          'Play prep cards from your hand to buff your next fight',
+          'Purchase an opening that matches your style from the catalog',
+          'Drill that opening to boost proficiency',
+          'Defeat the 3 ladder opponents, then challenge the boss!',
         ],
       },
     ],

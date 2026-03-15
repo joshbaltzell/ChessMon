@@ -1,11 +1,8 @@
-import type { PositionRecord, CandidateMove, GameResult, AlignmentAttack, AlignmentStyle } from '../types/index.js'
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP, type PositionRecord, type CandidateMove, type GameResult, type AlignmentAttack, type AlignmentStyle } from '../types/index.js'
 import { extractFeatures } from './feature-extractor.js'
 import { PreferenceModel, type TrainingSample, type TrainingResult } from './preference-model.js'
 import { getOrCreateModel, saveModel } from './model-store.js'
 import type { DrizzleDb } from '../db/connection.js'
-
-const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
 
 export interface BotAttributes {
   aggression: number

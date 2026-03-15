@@ -11,10 +11,7 @@ import { trainBotFromGame } from '../ml/training-pipeline.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
 import { calculateEloChange } from '../models/elo.js'
 import { XP_PER_SPAR } from '../models/progression.js'
-import type { PositionRecord, CandidateMove, GameResult } from '../types/index.js'
-
-const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP, type PositionRecord, type CandidateMove, type GameResult } from '../types/index.js'
 
 const PILOT_XP_MULTIPLIER = 1.5
 

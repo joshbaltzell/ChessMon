@@ -18,14 +18,22 @@ describe('Game Guide', () => {
     expect(guide.alignments.style).toHaveLength(3)
 
     expect(guide.training.actions).toHaveLength(3)
-    expect(guide.training.actions.find(a => a.name === 'Spar')!.cost).toBe(2)
-    expect(guide.training.actions.find(a => a.name === 'Purchase Tactic')!.cost).toBe(3)
-    expect(guide.training.actions.find(a => a.name === 'Drill')!.cost).toBe(1)
+    expect(guide.training.actions.map(a => a.name)).toEqual([
+      'Quick Spar', 'Purchase Tactic', 'Drill',
+    ])
 
     expect(guide.levelTests.mechanics.length).toBeGreaterThan(0)
     expect(guide.mlLearning.details.length).toBeGreaterThan(0)
     expect(guide.openingBooks.categories.length).toBe(4)
     expect(guide.cosmetics.tiers).toHaveLength(5)
+
+    // New v2 sections
+    expect(guide.cardSystem.categories).toHaveLength(3)
+    expect(guide.cardSystem.categories.map((c: any) => c.name)).toEqual(['Preparation', 'Powerup', 'Utility'])
+    expect(guide.sparTimer.mechanics.length).toBeGreaterThan(0)
+    expect(guide.pilotMode.mechanics.length).toBeGreaterThan(0)
+    expect(guide.bossesAndLadder.mechanics.length).toBeGreaterThan(0)
+    expect(guide.dailyQuests.mechanics.length).toBeGreaterThan(0)
   })
 
   it('should return a complete onboarding guide', () => {

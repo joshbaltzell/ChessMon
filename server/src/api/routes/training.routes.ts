@@ -7,6 +7,7 @@ import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
 import { botIdParamSchema, sparSchema, tacticKeySchema, parseOrThrow } from '../schemas/validation.js'
 import { rateLimitHeavy } from '../plugins/rate-limiter.js'
 import { config } from '../../config.js'
+import { createOwnershipVerifier } from '../helpers/ownership.js'
 
 // Limit concurrent game simulations to prevent Stockfish pool saturation
 const sparLimiter = new ConcurrencyLimiter(8)
@@ -17,13 +18,7 @@ export function createTrainingRoutes(pool: StockfishPool) {
     const trainingService = new TrainingService(db, pool)
     const botService = new BotService(db)
 
-    // Helper: verify bot ownership
-    function verifyOwnership(botId: number, playerId: number) {
-      const bot = botService.getById(botId)
-      if (!bot) throw Object.assign(new Error('Bot not found'), { statusCode: 404, code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) throw Object.assign(new Error('Not your bot'), { statusCode: 403, code: 'NOT_OWNER' })
-      return bot
-    }
+    const verifyOwnership = createOwnershipVerifier(botService)
 
     app.post('/bots/:id/train/spar', { onRequest: [app.authenticate, rateLimitHeavy] }, async (request, reply) => {
       const { id: botId } = parseOrThrow(botIdParamSchema, request.params)

@@ -35,8 +35,7 @@ const ARCHETYPE_PROFILES: Record<string, { aggression: number; positional: numbe
   'defensive_sacrificial':   { aggression: 6, positional: 10, tactical: 14, endgame: 14, creativity: 6 },
 }
 
-const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP } from '../types/index.js'
 
 // Curated set of common chess positions spanning opening, middlegame, endgame
 const TRAINING_POSITIONS = [

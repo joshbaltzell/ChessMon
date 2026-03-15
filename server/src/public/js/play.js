@@ -5,8 +5,6 @@
 // --- Play state ---
 let playSession = null;
 let clientChess = null;
-let selectedSquare = null;
-let legalMovesForSelected = [];
 let lastMoveFrom = null;
 let lastMoveTo = null;
 let boardFlipped = false;
@@ -14,93 +12,23 @@ let waitingForBot = false;
 let playerColor = 'w';
 let lastPlayPgn = null;
 
-function onPlaySquareClick(sq) {
-  if (waitingForBot) return;
-  if (!clientChess) return;
+// Board controller (shared logic from board.js)
+const playBoard = createBoardController({
+  getChess: () => clientChess,
+  getColor: () => playerColor,
+  isWaiting: () => waitingForBot,
+  boardId: 'playBoard',
+  overlayId: 'promoOverlay',
+  isFlipped: () => boardFlipped,
+  getLastMove: () => ({ from: lastMoveFrom, to: lastMoveTo }),
+  onExecuteMove: executeMove,
+});
 
-  const piece = clientChess.get(sq);
-
-  if (!selectedSquare) {
-    if (piece && piece.color === playerColor) selectPiece(sq);
-    return;
-  }
-
-  if (sq === selectedSquare) { deselectPiece(); return; }
-  if (piece && piece.color === playerColor) { selectPiece(sq); return; }
-
-  const matchingMoves = legalMovesForSelected.filter(m => m.to === sq);
-  if (matchingMoves.length === 0) { deselectPiece(); return; }
-
-  if (matchingMoves.some(m => m.promotion)) {
-    showPromotionPicker(sq, matchingMoves);
-    return;
-  }
-
-  executeMove(matchingMoves[0].san);
-}
-
-function selectPiece(sq) {
-  selectedSquare = sq;
-  legalMovesForSelected = clientChess.moves({ square: sq, verbose: true });
-  renderPlayBoard();
-}
-
-function deselectPiece() {
-  selectedSquare = null;
-  legalMovesForSelected = [];
-  renderPlayBoard();
-}
-
-function renderPlayBoard() {
-  renderInteractiveBoard(clientChess, 'playBoard', {
-    interactive: true,
-    flipped: boardFlipped,
-    selectedSq: selectedSquare,
-    legalMoves: legalMovesForSelected,
-    lastFrom: lastMoveFrom,
-    lastTo: lastMoveTo,
-    onSquareClick: onPlaySquareClick,
-  });
-}
-
-function showPromotionPicker(toSq, moves) {
-  const overlay = document.getElementById('promoOverlay');
-  overlay.classList.remove('hidden');
-
-  const promoColor = playerColor;
-  const pieces = [
-    { type: 'q', unicode: promoColor === 'w' ? '\u2655' : '\u265B' },
-    { type: 'r', unicode: promoColor === 'w' ? '\u2656' : '\u265C' },
-    { type: 'b', unicode: promoColor === 'w' ? '\u2657' : '\u265D' },
-    { type: 'n', unicode: promoColor === 'w' ? '\u2658' : '\u265E' },
-  ];
-
-  overlay.innerHTML = pieces.map(p => {
-    const move = moves.find(m => m.to === toSq && m.promotion === p.type);
-    return `<div class="promo-choice" onclick="onPromoSelect('${move ? move.san : ''}')">
-      <span class="piece ${promoColor === 'w' ? 'white' : 'black'}">${p.unicode}</span>
-    </div>`;
-  }).join('');
-
-  const board = document.getElementById('playBoard');
-  const sqSize = board.offsetWidth / 8;
-  const fileIdx = FILES.indexOf(toSq[0]);
-  const rankIdx = RANKS.indexOf(toSq[1]);
-  const visualFile = boardFlipped ? (7 - fileIdx) : fileIdx;
-  const visualRank = boardFlipped ? rankIdx : (7 - rankIdx);
-  overlay.style.left = (20 + visualFile * sqSize) + 'px';
-  overlay.style.top = (visualRank * sqSize) + 'px';
-}
-
-function onPromoSelect(san) {
-  document.getElementById('promoOverlay').classList.add('hidden');
-  if (san) executeMove(san);
-  else deselectPiece();
-}
+function renderPlayBoard() { playBoard.render(); }
 
 async function executeMove(san) {
   waitingForBot = true;
-  deselectPiece();
+  playBoard.deselect();
   document.getElementById('playStatus').textContent = 'Sending move...';
 
   try {
@@ -214,8 +142,6 @@ async function beginPlay(color) {
       lastMoveTo = last.to;
     }
 
-    selectedSquare = null;
-    legalMovesForSelected = [];
     waitingForBot = false;
 
     resetPlayControls();

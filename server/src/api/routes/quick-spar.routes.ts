@@ -10,6 +10,7 @@ import { ConcurrencyLimiter } from '../../engine/concurrency-limiter.js'
 import { botIdParamSchema, parseOrThrow } from '../schemas/validation.js'
 import { rateLimitQuickSpar } from '../plugins/rate-limiter.js'
 import { config } from '../../config.js'
+import { createOwnershipVerifier } from '../helpers/ownership.js'
 
 const sparLimiter = new ConcurrencyLimiter(config.MAX_CONCURRENT_SPARS ?? 8)
 
@@ -23,13 +24,7 @@ export function createQuickSparRoutes(pool: StockfishPool) {
     const trainingService = new TrainingService(db, pool)
     const botService = new BotService(db)
 
-    // Helper: verify bot ownership
-    function verifyOwnership(botId: number, playerId: number) {
-      const bot = botService.getById(botId)
-      if (!bot) throw Object.assign(new Error('Bot not found'), { statusCode: 404, code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) throw Object.assign(new Error('Not your bot'), { statusCode: 403, code: 'NOT_OWNER' })
-      return bot
-    }
+    const verifyOwnership = createOwnershipVerifier(botService)
 
     // GET /bots/:id/spar-timer — get current spar timer state
     app.get('/bots/:id/spar-timer', { onRequest: [app.authenticate] }, async (request, reply) => {

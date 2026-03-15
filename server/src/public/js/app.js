@@ -50,6 +50,10 @@ function showScreen(name) {
   } else if (name === 'pilot') {
     initPilotScreen();
   }
+
+  // Show help button on any game screen
+  const helpBtn = document.getElementById('helpBtn');
+  if (helpBtn) helpBtn.classList.remove('hidden');
 }
 
 function goBack() {
@@ -257,6 +261,12 @@ async function refreshDashboard() {
 
   // Show context banner
   updateContextBanner(d);
+
+  // Auto-show tutorial for new players (0 games played)
+  if (d.stats.gamesPlayed === 0 && !sessionStorage.getItem('tutorialShown')) {
+    sessionStorage.setItem('tutorialShown', '1');
+    showTutorial();
+  }
 
   // Show overnight report (once per session)
   if (d.overnightReport && !window._overnightShown) {
@@ -519,6 +529,7 @@ function closeFloatingPanels() {
   document.getElementById('sparPickPanel').classList.add('hidden');
   document.getElementById('brainPanel').classList.add('hidden');
   document.getElementById('replayPanel').classList.add('hidden');
+  document.getElementById('helpPanel').classList.add('hidden');
   if (typeof sparAnimTimer !== 'undefined' && sparAnimTimer) {
     if (typeof closeSparAnim === 'function') closeSparAnim();
   }
@@ -1123,6 +1134,216 @@ function setBoardActive(active) {
 // ===================================================================
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function escAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+// ===================================================================
+// Help / Tutorial System
+// ===================================================================
+let _guideCache = null;
+
+function toggleHelp() {
+  const panel = document.getElementById('helpPanel');
+  if (panel.classList.contains('hidden')) {
+    closeFloatingPanels();
+    panel.classList.remove('hidden');
+    loadGuide();
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function closeHelp() {
+  document.getElementById('helpPanel').classList.add('hidden');
+}
+
+async function loadGuide() {
+  if (_guideCache) {
+    renderGuideTabs(_guideCache);
+    return;
+  }
+  document.getElementById('helpContent').innerHTML = '<p style="color:var(--text-dim)">Loading guide...</p>';
+  try {
+    _guideCache = await api('GET', '/catalog/guide');
+    renderGuideTabs(_guideCache);
+  } catch(e) {
+    document.getElementById('helpContent').innerHTML = '<p style="color:var(--red)">Failed to load guide.</p>';
+  }
+}
+
+const GUIDE_SECTIONS = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'attributes', label: 'Attributes' },
+  { key: 'cardSystem', label: 'Cards' },
+  { key: 'sparTimer', label: 'Spar Timer' },
+  { key: 'bossesAndLadder', label: 'Bosses' },
+  { key: 'pilotMode', label: 'Pilot' },
+  { key: 'mlLearning', label: 'Bot Brain' },
+  { key: 'dailyQuests', label: 'Quests' },
+  { key: 'openingBooks', label: 'Openings' },
+];
+
+function renderGuideTabs(guide) {
+  const tabsEl = document.getElementById('helpTabs');
+  const contentEl = document.getElementById('helpContent');
+
+  tabsEl.innerHTML = GUIDE_SECTIONS.map(s =>
+    `<button class="help-tab" data-section="${s.key}" onclick="selectGuideTab('${s.key}')">${s.label}</button>`
+  ).join('') + `<button class="help-tab" data-section="tutorial" onclick="showTutorial()">Tutorial</button>`;
+
+  // Show first section by default
+  selectGuideTab('overview');
+}
+
+function selectGuideTab(key) {
+  if (!_guideCache) return;
+  const section = _guideCache[key];
+  if (!section) return;
+
+  // Update active tab
+  document.querySelectorAll('.help-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.section === key);
+  });
+
+  const contentEl = document.getElementById('helpContent');
+  let html = `<div class="help-section">`;
+  html += `<h3>${escHtml(section.title)}</h3>`;
+  html += `<p>${escHtml(section.description)}</p>`;
+
+  // Render section-specific content
+  if (section.stats) {
+    // Attributes section
+    html += '<ul>';
+    for (const stat of section.stats) {
+      html += `<li><strong>${escHtml(stat.name)}</strong> (${stat.range}): ${escHtml(stat.effect)}</li>`;
+    }
+    html += '</ul>';
+    if (section.tips) {
+      html += '<h3>Tips</h3><ul>';
+      for (const tip of section.tips) html += `<li>${escHtml(tip)}</li>`;
+      html += '</ul>';
+    }
+  } else if (section.categories) {
+    // Card system or opening books
+    for (const cat of section.categories) {
+      html += `<div class="help-example"><strong>${escHtml(cat.name)}</strong>: ${escHtml(cat.description || cat.suited || '')}`;
+      if (cat.examples) html += `<br><em>${escHtml(cat.examples)}</em>`;
+      if (cat.example) html += `<br><em>e.g. ${escHtml(cat.example)}</em>`;
+      html += `</div>`;
+    }
+    if (section.tips) {
+      html += '<h3>Tips</h3><ul>';
+      for (const tip of section.tips) html += `<li>${escHtml(tip)}</li>`;
+      html += '</ul>';
+    }
+  } else if (section.mechanics) {
+    html += '<ul>';
+    for (const m of section.mechanics) html += `<li>${escHtml(m)}</li>`;
+    html += '</ul>';
+  } else if (section.details) {
+    html += '<ul>';
+    for (const d of section.details) html += `<li>${escHtml(d)}</li>`;
+    html += '</ul>';
+  } else if (section.actions) {
+    // Training section
+    for (const action of section.actions) {
+      html += `<div class="help-example"><strong>${escHtml(action.name)}</strong>: ${escHtml(action.description)}</div>`;
+    }
+    if (section.strategy) {
+      html += '<h3>Strategy</h3><ul>';
+      for (const s of section.strategy) html += `<li>${escHtml(s)}</li>`;
+      html += '</ul>';
+    }
+  } else if (section.attack) {
+    // Alignments
+    html += '<h3>Attack</h3>';
+    for (const a of section.attack) {
+      html += `<div class="help-example"><strong>${escHtml(a.name)}</strong>: ${escHtml(a.effect)}<br><em>${escHtml(a.personality)}</em></div>`;
+    }
+    html += '<h3>Style</h3>';
+    for (const s of section.style) {
+      html += `<div class="help-example"><strong>${escHtml(s.name)}</strong>: ${escHtml(s.effect)}<br><em>${escHtml(s.personality)}</em></div>`;
+    }
+  } else if (section.flow) {
+    // Overview
+    html += '<ol>';
+    for (const step of section.flow) html += `<li>${escHtml(step)}</li>`;
+    html += '</ol>';
+  } else if (section.tiers) {
+    // Cosmetics
+    for (const tier of section.tiers) {
+      html += `<div class="help-example">Tier ${tier.tier} (Lv.${tier.levels}): ${escHtml(tier.description)}</div>`;
+    }
+  }
+
+  html += `</div>`;
+  contentEl.innerHTML = html;
+}
+
+async function showTutorial() {
+  // Show help panel with tutorial content
+  const panel = document.getElementById('helpPanel');
+  panel.classList.remove('hidden');
+
+  // Update tab highlight
+  document.querySelectorAll('.help-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.section === 'tutorial');
+  });
+
+  try {
+    const onboarding = await api('GET', '/catalog/onboarding');
+    const contentEl = document.getElementById('helpContent');
+
+    let html = '<div class="help-section">';
+    html += `<h3>${escHtml(onboarding.title)}</h3>`;
+
+    for (const step of onboarding.steps) {
+      html += `<div class="tutorial-step">`;
+      html += `<div class="tutorial-step-num">Step ${step.step}</div>`;
+      html += `<h4>${escHtml(step.title)}</h4>`;
+      html += `<p>${escHtml(step.description)}</p>`;
+
+      if (step.tip) html += `<div class="tip">${escHtml(step.tip)}</div>`;
+
+      if (step.builds) {
+        for (const build of step.builds) {
+          const d = build.distribution;
+          html += `<div class="help-example"><strong>${escHtml(build.name)}</strong>: ${escHtml(build.description)}<br>`;
+          html += `A:${d.aggression} P:${d.positional} T:${d.tactical} E:${d.endgame} C:${d.creativity}</div>`;
+        }
+      }
+
+      if (step.combos) {
+        for (const combo of step.combos) {
+          html += `<div class="help-example">${escHtml(combo.attack)}/${escHtml(combo.style)}: ${escHtml(combo.vibe)}</div>`;
+        }
+      }
+
+      if (step.plan) {
+        html += '<ol>';
+        for (const p of step.plan) html += `<li>${escHtml(p)}</li>`;
+        html += '</ol>';
+      }
+
+      html += `</div>`;
+    }
+
+    html += '</div>';
+    contentEl.innerHTML = html;
+
+    // Ensure guide tabs are loaded
+    if (!_guideCache) {
+      try {
+        _guideCache = await api('GET', '/catalog/guide');
+        renderGuideTabs(_guideCache);
+        // Re-highlight tutorial tab
+        document.querySelectorAll('.help-tab').forEach(t => {
+          t.classList.toggle('active', t.dataset.section === 'tutorial');
+        });
+      } catch {}
+    }
+  } catch(e) {
+    document.getElementById('helpContent').innerHTML = '<p style="color:var(--red)">Failed to load tutorial.</p>';
+  }
+}
 
 // ===================================================================
 // Init

@@ -13,10 +13,7 @@ import { loadModel } from '../ml/model-store.js'
 import { generateEmotionResponse } from '../models/personality.js'
 import { getBestOpeningBook } from '../engine/opening-book.js'
 import type { MoveSelectorContext } from '../engine/move-selector.js'
-import type { GameResult } from '../types/index.js'
-
-const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP, type GameResult } from '../types/index.js'
 
 interface LevelTestOpponent {
   type: 'system' | 'player'

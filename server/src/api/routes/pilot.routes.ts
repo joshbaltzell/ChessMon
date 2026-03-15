@@ -5,6 +5,7 @@ import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { botIdParamSchema, playSessionParamSchema, moveSchema, parseOrThrow } from '../schemas/validation.js'
 import { z } from 'zod'
+import { createOwnershipVerifier } from '../helpers/ownership.js'
 
 const pilotNewSchema = z.object({
   player_color: z.enum(['w', 'b']).default('w'),
@@ -22,12 +23,7 @@ export function createPilotRoutes(pool: StockfishPool) {
     const pilotService = new PilotService(db, pool)
     const botService = new BotService(db)
 
-    function verifyOwnership(botId: number, playerId: number) {
-      const bot = botService.getById(botId)
-      if (!bot) throw Object.assign(new Error('Bot not found'), { statusCode: 404, code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) throw Object.assign(new Error('Not your bot'), { statusCode: 403, code: 'NOT_OWNER' })
-      return bot
-    }
+    const verifyOwnership = createOwnershipVerifier(botService)
 
     // POST /bots/:id/pilot/new — start a pilot game
     app.post('/bots/:id/pilot/new', { onRequest: [app.authenticate] }, async (request, reply) => {

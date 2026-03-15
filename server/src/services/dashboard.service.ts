@@ -11,12 +11,18 @@ import { CardService } from './card.service.js'
 import { LadderService } from './ladder.service.js'
 import { processAbsence, type AbsenceReport } from './auto-fight.service.js'
 import { DailyQuestService } from './daily-quest.service.js'
-
-const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP } from '../types/index.js'
 
 export class DashboardService {
-  constructor(private db: DrizzleDb) {}
+  private cardService: CardService
+  private ladderService: LadderService
+  private dailyQuestService: DailyQuestService
+
+  constructor(private db: DrizzleDb) {
+    this.cardService = new CardService(db)
+    this.ladderService = new LadderService(db)
+    this.dailyQuestService = new DailyQuestService(db)
+  }
 
   async getBotDashboard(botId: number) {
     const bot = this.db.select().from(bots).where(eq(bots.id, botId)).get()
@@ -112,10 +118,9 @@ export class DashboardService {
       }
     } catch { /* ML probe failed, non-critical */ }
 
-    const cardService = new CardService(this.db)
-    const handState = this.getHandStateWith(cardService, botId)
+    const handState = this.getHandStateWith(this.cardService, botId)
     const ladderState = this.getLadderState(botId)
-    const streak = cardService.getWinStreak(botId)
+    const streak = this.cardService.getWinStreak(botId)
     const championship = this.getChampionshipState(botId)
 
     // Process autonomous fights while away
@@ -125,9 +130,8 @@ export class DashboardService {
     } catch { /* non-critical */ }
 
     // Daily quests and streak
-    const dailyQuestService = new DailyQuestService(this.db)
-    const dailyQuests = dailyQuestService.getDailyQuests(botId)
-    const streakInfo = dailyQuestService.getStreakInfo(botId)
+    const dailyQuests = this.dailyQuestService.getDailyQuests(botId)
+    const streakInfo = this.dailyQuestService.getStreakInfo(botId)
 
     const contextCues = this.generateContextCues(bot, handState, ladderState)
 
@@ -214,8 +218,7 @@ export class DashboardService {
 
   private getLadderState(botId: number) {
     try {
-      const ladderService = new LadderService(this.db)
-      return ladderService.getLadderState(botId)
+      return this.ladderService.getLadderState(botId)
     } catch {
       return null
     }

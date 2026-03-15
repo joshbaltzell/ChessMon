@@ -4,6 +4,7 @@ import { DashboardService } from '../../services/dashboard.service.js'
 import { getDb } from '../../db/connection.js'
 import { createBotSchema, leaderboardQuerySchema, botIdParamSchema, parseOrThrow } from '../schemas/validation.js'
 import { loadModel } from '../../ml/model-store.js'
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP } from '../../types/index.js'
 
 export async function botRoutes(app: FastifyInstance) {
   const db = getDb()
@@ -85,8 +86,6 @@ export async function botRoutes(app: FastifyInstance) {
       return { trained: false, message: 'Bot has not trained yet — spar to start learning!' }
     }
 
-    const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-    const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
 
     const profile = model.probePreferences(
       {

@@ -4,8 +4,6 @@
 
 let pilotSession = null;
 let pilotChess = null;
-let pilotSelected = null;
-let pilotLegalMoves = [];
 let pilotLastFrom = null;
 let pilotLastTo = null;
 let pilotFlipped = false;
@@ -15,99 +13,32 @@ let pilotOpponentLevel = 1;
 let pilotSuggestedMove = null;
 let pilotLastPgn = null;
 
-function onPilotSquareClick(sq) {
-  if (pilotWaiting) return;
-  if (!pilotChess) return;
-
-  const piece = pilotChess.get(sq);
-
-  if (!pilotSelected) {
-    if (piece && piece.color === pilotColor) selectPilotPiece(sq);
-    return;
-  }
-
-  if (sq === pilotSelected) { deselectPilotPiece(); return; }
-  if (piece && piece.color === pilotColor) { selectPilotPiece(sq); return; }
-
-  const matchingMoves = pilotLegalMoves.filter(m => m.to === sq);
-  if (matchingMoves.length === 0) { deselectPilotPiece(); return; }
-
-  if (matchingMoves.some(m => m.promotion)) {
-    showPilotPromoPicker(sq, matchingMoves);
-    return;
-  }
-
-  executePilotMove(matchingMoves[0].san);
-}
-
-function selectPilotPiece(sq) {
-  pilotSelected = sq;
-  pilotLegalMoves = pilotChess.moves({ square: sq, verbose: true });
-  renderPilotBoard();
-}
-
-function deselectPilotPiece() {
-  pilotSelected = null;
-  pilotLegalMoves = [];
-  renderPilotBoard();
-}
-
-function renderPilotBoard() {
-  // Determine suggested move squares for ghost arrow
-  let suggestedFrom = null;
-  let suggestedTo = null;
-  if (pilotSuggestedMove && pilotChess && pilotChess.turn() === pilotColor) {
+// Board controller (shared logic from board.js)
+const pilotBoard = createBoardController({
+  getChess: () => pilotChess,
+  getColor: () => pilotColor,
+  isWaiting: () => pilotWaiting,
+  boardId: 'pilotBoard',
+  overlayId: 'pilotPromoOverlay',
+  isFlipped: () => pilotFlipped,
+  getLastMove: () => ({ from: pilotLastFrom, to: pilotLastTo }),
+  onExecuteMove: executePilotMove,
+  getSuggested: () => {
+    if (!pilotSuggestedMove || !pilotChess || pilotChess.turn() !== pilotColor) return null;
     try {
       const testChess = new Chess(pilotChess.fen());
       const move = testChess.move(pilotSuggestedMove);
-      if (move) {
-        suggestedFrom = move.from;
-        suggestedTo = move.to;
-      }
+      if (move) return { from: move.from, to: move.to };
     } catch {}
-  }
+    return null;
+  },
+});
 
-  renderInteractiveBoard(pilotChess, 'pilotBoard', {
-    interactive: true,
-    flipped: pilotFlipped,
-    selectedSq: pilotSelected,
-    legalMoves: pilotLegalMoves,
-    lastFrom: pilotLastFrom,
-    lastTo: pilotLastTo,
-    suggestedFrom,
-    suggestedTo,
-    onSquareClick: onPilotSquareClick,
-  });
-}
-
-function showPilotPromoPicker(toSq, moves) {
-  const overlay = document.getElementById('pilotPromoOverlay');
-  overlay.classList.remove('hidden');
-
-  const pieces = [
-    { type: 'q', unicode: pilotColor === 'w' ? '\u2655' : '\u265B' },
-    { type: 'r', unicode: pilotColor === 'w' ? '\u2656' : '\u265C' },
-    { type: 'b', unicode: pilotColor === 'w' ? '\u2657' : '\u265D' },
-    { type: 'n', unicode: pilotColor === 'w' ? '\u2658' : '\u265E' },
-  ];
-
-  overlay.innerHTML = pieces.map(p => {
-    const move = moves.find(m => m.to === toSq && m.promotion === p.type);
-    return `<div class="promo-choice" onclick="onPilotPromoSelect('${move ? move.san : ''}')">
-      <span class="piece ${pilotColor === 'w' ? 'white' : 'black'}">${p.unicode}</span>
-    </div>`;
-  }).join('');
-}
-
-function onPilotPromoSelect(san) {
-  document.getElementById('pilotPromoOverlay').classList.add('hidden');
-  if (san) executePilotMove(san);
-  else deselectPilotPiece();
-}
+function renderPilotBoard() { pilotBoard.render(); }
 
 async function executePilotMove(san) {
   pilotWaiting = true;
-  deselectPilotPiece();
+  pilotBoard.deselect();
   document.getElementById('pilotStatus').textContent = 'Sending move...';
 
   try {
@@ -203,8 +134,6 @@ async function beginPilotGame(color) {
       pilotLastTo = last.to;
     }
 
-    pilotSelected = null;
-    pilotLegalMoves = [];
     pilotWaiting = false;
     pilotSuggestedMove = r.suggestedMove || null;
 

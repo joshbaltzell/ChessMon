@@ -5,21 +5,20 @@ import { getDb } from '../../db/connection.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { botIdParamSchema, playSessionParamSchema, newGameSchema, moveSchema, parseOrThrow } from '../schemas/validation.js'
 import { rateLimitPlay } from '../plugins/rate-limiter.js'
+import { createOwnershipVerifier } from '../helpers/ownership.js'
 
 export function createPlayRoutes(pool: StockfishPool) {
   return async function playRoutes(app: FastifyInstance) {
     const db = getDb()
     const playService = new PlayService(db, pool)
     const botService = new BotService(db)
+    const verifyOwnership = createOwnershipVerifier(botService)
 
     // Start a new human vs bot game
     app.post('/bots/:id/play/new', { onRequest: [app.authenticate] }, async (request, reply) => {
       const { id: botId } = parseOrThrow(botIdParamSchema, request.params)
       const { playerId } = request.user
-
-      const bot = botService.getById(botId)
-      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      verifyOwnership(botId, playerId)
 
       const { player_color } = parseOrThrow(newGameSchema, request.body ?? {})
 
@@ -35,9 +34,7 @@ export function createPlayRoutes(pool: StockfishPool) {
       const { id: botId, sessionId } = parseOrThrow(playSessionParamSchema, request.params)
       const { playerId } = request.user
 
-      const bot = botService.getById(botId)
-      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      verifyOwnership(botId, playerId)
 
       const session = playService.getSession(sessionId)
       if (!session || session.botId !== botId) {
@@ -60,10 +57,7 @@ export function createPlayRoutes(pool: StockfishPool) {
     app.post('/bots/:id/play/:sessionId/resign', { onRequest: [app.authenticate] }, async (request, reply) => {
       const { id: botId, sessionId } = parseOrThrow(playSessionParamSchema, request.params)
       const { playerId } = request.user
-
-      const bot = botService.getById(botId)
-      if (!bot) return reply.status(404).send({ error: 'Bot not found', code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) return reply.status(403).send({ error: 'Not your bot', code: 'NOT_OWNER' })
+      verifyOwnership(botId, playerId)
 
       const session = playService.getSession(sessionId)
       if (!session || session.botId !== botId) {

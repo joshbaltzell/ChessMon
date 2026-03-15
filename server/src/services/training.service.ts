@@ -1,8 +1,9 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import { bots, botTactics, trainingLog, gameRecords } from '../db/schema.js'
 import type { DrizzleDb } from '../db/connection.js'
 import type { StockfishPool } from '../engine/stockfish-pool.js'
 import type { PlayParameters } from '../types/index.js'
+import { ALIGNMENT_ATTACK_MAP, ALIGNMENT_STYLE_MAP } from '../types/index.js'
 import { simulateGame } from '../engine/game-simulator.js'
 import { applyBuffs, type ActiveBuff, type ActivePowerup } from '../engine/buff-resolver.js'
 import { botToPlayParameters, systemBotPlayParameters } from '../models/bot-intelligence.js'
@@ -20,9 +21,6 @@ import type { MoveSelectorContext } from '../engine/move-selector.js'
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 const tacticsData = require('../data/tactics.json') as { tactics: Array<{ key: string; name: string; description: string; category: string; minLevel: number; cost: number }> }
-
-const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
-const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
 
 export class TrainingService {
   constructor(
@@ -126,10 +124,10 @@ export class TrainingService {
       // Try to get previous style from training log for shift calculation
       let previousStyle: StyleProfile | null = null
       const lastSparLog = this.db.select().from(trainingLog)
-        .where(eq(trainingLog.botId, botId))
-        .all()
-        .filter(l => l.actionType === 'spar')
-        .pop()
+        .where(and(eq(trainingLog.botId, botId), eq(trainingLog.actionType, 'spar')))
+        .orderBy(desc(trainingLog.createdAt))
+        .limit(1)
+        .get()
       if (lastSparLog) {
         try {
           const parsed = JSON.parse(lastSparLog.resultJson)

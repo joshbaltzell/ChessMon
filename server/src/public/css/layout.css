@@ -352,3 +352,125 @@
   font-size: 0.8rem;
   color: var(--neon-yellow);
 }
+
+/* =============================================================
+   HELP / TUTORIAL SYSTEM
+   ============================================================= */
+.help-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 100;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+  transition: all 0.15s ease;
+}
+
+.help-btn:hover {
+  background: var(--neon-blue);
+  color: var(--bg);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.4);
+}
+
+.help-btn.hidden {
+  display: none;
+}
+
+.help-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.help-tab {
+  font-size: 0.65rem;
+  padding: 4px 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s ease;
+}
+
+.help-tab:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.help-tab.active {
+  background: var(--neon-blue);
+  color: var(--bg);
+  border-color: var(--neon-blue);
+}
+
+.help-section h3 {
+  margin: 12px 0 6px;
+  font-size: 0.85rem;
+  color: var(--neon-blue);
+}
+
+.help-section p,
+.help-section li {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.help-section ul {
+  margin: 4px 0 8px 16px;
+  padding: 0;
+}
+
+.help-section .help-example {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.tutorial-step {
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-raised);
+}
+
+.tutorial-step-num {
+  color: var(--neon-yellow);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  margin-bottom: 4px;
+}
+
+.tutorial-step h4 {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.tutorial-step p {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin: 2px 0;
+}
+
+.tutorial-step .tip {
+  font-size: 0.75rem;
+  color: var(--neon-green);
+  margin-top: 4px;
+}

@@ -306,6 +306,19 @@
     <div class="move-list" id="replayMoveList"></div>
   </div>
 
+  <!-- Help / Guide panel -->
+  <div class="floating-panel hidden" id="helpPanel">
+    <div class="floating-panel-header">
+      <h2>Game Guide</h2>
+      <button class="nav-close" onclick="closeHelp()">&times;</button>
+    </div>
+    <div class="help-tabs" id="helpTabs"></div>
+    <div id="helpContent"></div>
+  </div>
+
+  <!-- Help button (always visible in game screens) -->
+  <button class="help-btn hidden" id="helpBtn" onclick="toggleHelp()" title="Help &amp; Guide">?</button>
+
   <!-- Dev Mode panel -->
   <div class="panel hidden" id="devPanel">
     <h2 style="color:var(--neon-yellow)">Dev Tools</h2>

@@ -60,6 +60,17 @@ export const ATTRIBUTE_TOTAL = 50
 export const ATTRIBUTE_MIN = 0
 export const ATTRIBUTE_MAX = 20
 
+// Shared alignment maps (numeric encoding for ML features)
+export const ALIGNMENT_ATTACK_MAP: Record<string, number> = { aggressive: 0, balanced: 1, defensive: 2 }
+export const ALIGNMENT_STYLE_MAP: Record<string, number> = { chaotic: 0, positional: 1, sacrificial: 2 }
+
+/** Determine outcome from a bot's perspective. */
+export function determineOutcome(result: GameResult, botIsWhite: boolean): 'win' | 'loss' | 'draw' {
+  if (result === '1/2-1/2') return 'draw'
+  const whiteWon = result === '1-0'
+  return (whiteWon === botIsWhite) ? 'win' : 'loss'
+}
+
 // --- Card System ---
 export type CardType = 'prep' | 'powerup' | 'utility'
 export type CardCategory = 'preparation' | 'powerup' | 'utility'

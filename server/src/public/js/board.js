@@ -96,3 +96,110 @@ function renderInteractiveBoard(chess, boardId, options = {}) {
     fileLabels.innerHTML = fileOrder.map(f => `<span>${FILES[f]}</span>`).join('');
   }
 }
+
+/**
+ * Shared board interaction controller.
+ * Eliminates duplicated click/select/promo logic between play.js and pilot.js.
+ *
+ * @param {Object} config
+ * @param {() => Chess|null} config.getChess - Returns the current Chess instance
+ * @param {() => string} config.getColor - Returns the player's color ('w'|'b')
+ * @param {() => boolean} config.isWaiting - Whether waiting for opponent move
+ * @param {string} config.boardId - DOM id of the board element
+ * @param {string} config.overlayId - DOM id of the promo overlay element
+ * @param {() => boolean} config.isFlipped - Whether the board is flipped
+ * @param {(san: string) => void} config.onExecuteMove - Callback when a move is executed
+ * @param {() => {from: string, to: string}|null} [config.getSuggested] - Optional suggested move
+ * @param {() => {from: string|null, to: string|null}} config.getLastMove - Last move squares
+ */
+function createBoardController(config) {
+  let selectedSquare = null;
+  let legalMoves = [];
+
+  function render() {
+    const chess = config.getChess();
+    if (!chess) return;
+    const lastMove = config.getLastMove();
+    const suggested = config.getSuggested ? config.getSuggested() : null;
+    renderInteractiveBoard(chess, config.boardId, {
+      interactive: true,
+      flipped: config.isFlipped(),
+      selectedSq: selectedSquare,
+      legalMoves: legalMoves,
+      lastFrom: lastMove.from,
+      lastTo: lastMove.to,
+      suggestedFrom: suggested ? suggested.from : null,
+      suggestedTo: suggested ? suggested.to : null,
+      onSquareClick: onSquareClick,
+    });
+  }
+
+  function selectPiece(sq) {
+    const chess = config.getChess();
+    if (!chess) return;
+    selectedSquare = sq;
+    legalMoves = chess.moves({ square: sq, verbose: true });
+    render();
+  }
+
+  function deselect() {
+    selectedSquare = null;
+    legalMoves = [];
+    render();
+  }
+
+  function onSquareClick(sq) {
+    if (config.isWaiting()) return;
+    const chess = config.getChess();
+    if (!chess) return;
+
+    const piece = chess.get(sq);
+
+    if (!selectedSquare) {
+      if (piece && piece.color === config.getColor()) selectPiece(sq);
+      return;
+    }
+
+    if (sq === selectedSquare) { deselect(); return; }
+    if (piece && piece.color === config.getColor()) { selectPiece(sq); return; }
+
+    const matching = legalMoves.filter(m => m.to === sq);
+    if (matching.length === 0) { deselect(); return; }
+
+    if (matching.some(m => m.promotion)) {
+      showPromoPicker(sq, matching);
+      return;
+    }
+
+    config.onExecuteMove(matching[0].san);
+  }
+
+  function showPromoPicker(toSq, moves) {
+    const overlay = document.getElementById(config.overlayId);
+    overlay.classList.remove('hidden');
+
+    const color = config.getColor();
+    const pieces = [
+      { type: 'q', unicode: color === 'w' ? '\u2655' : '\u265B' },
+      { type: 'r', unicode: color === 'w' ? '\u2656' : '\u265C' },
+      { type: 'b', unicode: color === 'w' ? '\u2657' : '\u265D' },
+      { type: 'n', unicode: color === 'w' ? '\u2658' : '\u265E' },
+    ];
+
+    // Store handler on overlay for cleanup
+    overlay._promoHandler = function(san) {
+      overlay.classList.add('hidden');
+      if (san) config.onExecuteMove(san);
+      else deselect();
+    };
+
+    overlay.innerHTML = pieces.map(p => {
+      const move = moves.find(m => m.to === toSq && m.promotion === p.type);
+      return `<div class="promo-choice" onclick="document.getElementById('${config.overlayId}')._promoHandler('${move ? move.san : ''}')">
+        <span class="piece ${color === 'w' ? 'white' : 'black'}">${p.unicode}</span>
+      </div>`;
+    }).join('');
+  }
+
+  return { render, deselect, onSquareClick, selectPiece };
+}

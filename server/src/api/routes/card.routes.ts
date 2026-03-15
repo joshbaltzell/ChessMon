@@ -7,6 +7,7 @@ import { getDb } from '../../db/connection.js'
 import { bots } from '../../db/schema.js'
 import type { StockfishPool } from '../../engine/stockfish-pool.js'
 import { botIdParamSchema, playCardSchema, parseOrThrow } from '../schemas/validation.js'
+import { createOwnershipVerifier } from '../helpers/ownership.js'
 
 export function createCardRoutes(pool: StockfishPool) {
   return async function cardRoutes(app: FastifyInstance) {
@@ -15,13 +16,7 @@ export function createCardRoutes(pool: StockfishPool) {
     const botService = new BotService(db)
     const ladderService = new LadderService(db)
 
-    // Helper: verify bot ownership
-    function verifyOwnership(botId: number, playerId: number) {
-      const bot = botService.getById(botId)
-      if (!bot) throw Object.assign(new Error('Bot not found'), { statusCode: 404, code: 'BOT_NOT_FOUND' })
-      if (bot.playerId !== playerId) throw Object.assign(new Error('Not your bot'), { statusCode: 403, code: 'NOT_OWNER' })
-      return bot
-    }
+    const verifyOwnership = createOwnershipVerifier(botService)
 
     // GET /bots/:id/hand — get current hand state (auto-draws if none exists)
     app.get('/bots/:id/hand', { onRequest: [app.authenticate] }, async (request, reply) => {
